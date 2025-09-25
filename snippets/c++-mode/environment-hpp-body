@@ -1,0 +1,39 @@
+# -*- mode: snippet -*-
+# name: environment-hpp-body
+# --
+/// User Environment
+///
+/// This class interfaces with the user's environment, such as locale settings.
+class Environment \{
+public:
+
+  /// Sets the locale.
+  ///
+  /// Sets the locale globally and imbues it in the output stream.
+  ///
+  /// \\param id locale ID in the form "en_US" or "en_US.UTF-8"
+  void locale(const std::string &id);
+
+  /// \\returns name of current locale
+  const std::string locale() const;
+
+private:
+  /// \\returns path to running executable
+  const std::string executablePath() const;
+
+  /// Ensure a locale ID specifies the encoding.
+  ///
+  /// If no encoding is specified, appends default ".UTF-8" to the locale ID.
+  ///
+  /// \\param id locale ID in the form "en_US" or "en_US.UTF-8"
+  /// \\returns fully qualified locale ID in the form "en_US.UTF-8"
+  const std::string useDefaultUTF8LocaleEncoding(const std::string &id) const;
+
+  /// Current Locale
+  std::locale locale_;
+
+  /// Name of current Locale
+  std::string localeName_;
+\};
+
+$0

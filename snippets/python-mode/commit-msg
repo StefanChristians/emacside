@@ -1,0 +1,22 @@
+# -*- mode: snippet -*-
+# name: commit-msg
+# key: commit-msg
+# expand-env: ((yas-indent-line 'fixed))
+# --
+#!/usr/bin/python
+
+import re
+import sys
+
+CONVENTIONAL_REGEX = re.compile(r'^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\\([^)]+\\))?(!)?: .+')
+
+def main():
+    msg_file = sys.argv[1]
+    with open(msg_file, encoding="utf-8") as f:
+        first_line = f.readline().rstrip("\n")
+    if not CONVENTIONAL_REGEX.match(first_line):
+        print("Commit Error: Conventional Commit message required", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == '__main__':
+    main()

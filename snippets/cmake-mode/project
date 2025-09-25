@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: project
+# key: proj
+# --
+project(${1:`(ide-common-get-project-machine-name)`} DESCRIPTION "${2:`ide-common-default-project-description`}")
+set(PROJECT_VENDOR "${3:`ide-common-default-project-vendor`}")
+set(PROJECT_CONTACT "${4:`ide-common-default-project-contact`}")$0

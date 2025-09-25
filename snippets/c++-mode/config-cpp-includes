@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: config-cpp-includes
+# --
+#include "CLI/CLI.hpp"
+
+#include "`(ide-cpp-get-version-header)`"
+
+$0

@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: core-cpp-body
+# --
+const std::string `(ide-cpp-project-or-submodule-class)`::about() const {
+      return std::format("{} {}", version::ProjectName, version::VersionString);
+}
+$0

@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: version
+# key: version
+# --
+${1:0}.${2:0}.${3:0}$0

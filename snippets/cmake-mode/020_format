@@ -1,0 +1,62 @@
+# -*- mode: snippet -*-
+# name: format
+# group: module
+# --
+include_guard(GLOBAL)
+
+# Apply standard formatting to source code
+
+# glob to search source files
+set(SOURCE_GLOB `(mapconcat #'identity (cl-mapcan (lambda (ext) (list ext (format "%s%s" ext ide-cpp-default-cmake-dynamic-config-extension))) (append ide-cpp-available-cpp-header-extensions ide-cpp-available-cpp-source-extensions)) " ")`)
+
+# required binaries
+find_program(CLANGFORMAT_EXECUTABLE clang-format)
+mark_as_advanced(CLANGFORMAT_EXECUTABLE)
+
+if (CLANGFORMAT_EXECUTABLE)
+  execute_process(
+    COMMAND \$\{CLANGFORMAT_EXECUTABLE\} --version
+    OUTPUT_VARIABLE CLANGFORMAT_VERSION
+  )
+  string(REGEX REPLACE ".*version ([^ ]+) .*" "\\\\1" CLANGFORMAT_VERSION "\$\{CLANGFORMAT_VERSION\}")
+  message(STATUS "Found clang-format: \$\{CLANGFORMAT_EXECUTABLE\} (found version \\"\$\{CLANGFORMAT_VERSION\}\\")")
+  message(STATUS "formatting enabled")
+  set(FORMATTING_AVAILABLE True)
+else()
+  message(STATUS "clang-format not found - formatting disabled")
+  set(FORMATTING_AVAILABLE False)
+endif()
+
+# ensure formatting rules file exists
+if (FORMATTING_AVAILABLE)
+  if (NOT EXISTS "\$\{CMAKE_SOURCE_DIR\}/.clang-format")
+    message(STATUS ".clang-format file not found - formatting disabled")
+    set(FORMATTING_AVAILABLE False)
+  endif()
+endif()
+
+# Format files in current source directory
+# and recursively in subdirectories before
+# building target.
+# Additional directories can be appended as additional arguments
+function(format target)
+  if (FORMATTING_AVAILABLE)
+    foreach(dir \$\{CMAKE_CURRENT_SOURCE_DIR\} \$\{ARGN\})
+      list(TRANSFORM SOURCE_GLOB PREPEND "\$\{dir\}/*" OUTPUT_VARIABLE glob)
+      file(GLOB_RECURSE files
+        FOLLOW_SYMLINKS
+        LIST_DIRECTORIES false
+        RELATIVE "\$\{dir\}"
+        \$\{glob\}
+      )
+      if (files)
+        add_custom_command(
+          TARGET \$\{target\}
+          PRE_BUILD
+          COMMAND \$\{CLANGFORMAT_EXECUTABLE\} -i --style=file \$\{files\}
+          WORKING_DIRECTORY "\$\{dir\}"
+        )
+      endif()
+    endforeach()
+  endif()
+endfunction()

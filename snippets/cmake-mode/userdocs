@@ -1,0 +1,20 @@
+# -*- mode: snippet -*-
+# name: userdocs
+# key: userdocs
+# type: command
+# --
+(loop-for-each ext (map-keys ide-cpp-available-userdoc-file-extensions)
+  (let ((docfile (f-join (ide-common-active-path)
+                         (concat ide-cpp-default-userdoc-file-base ext))))
+    (when (f-file? docfile)
+      (insert (format
+               "userdocs_append(%s \"\$\{CMAKE_CURRENT_SOURCE_DIR\}/%s\")\n"
+               (ide-cpp-project-or-submodule-name)
+               (f-filename docfile))))
+    (when (f-file? (concat
+                    docfile
+                    ide-cpp-default-cmake-dynamic-config-extension))
+      (insert (format
+               "userdocs_append(%s \"\$\{CMAKE_CURRENT_BINARY_DIR\}/%s\")\n"
+               (ide-cpp-project-or-submodule-name)
+               (f-filename docfile))))))

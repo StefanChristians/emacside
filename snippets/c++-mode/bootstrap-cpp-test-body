@@ -1,0 +1,21 @@
+# -*- mode: snippet -*-
+# name: bootstrap-cpp-test-body
+# --
+TEST_F(BootstrapTests,
+       run_Should_terminateSuccessfully_When_calledWithNullArguments) {
+  EXPECT_EQ(0, run(0, nullptr));
+}
+
+TEST_F(BootstrapTests,
+       run_Should_terminateSuccessfully_When_calledWithNullPointer) {
+  EXPECT_EQ(0, run(1, nullptr));
+}
+
+TEST_F(BootstrapTests,
+       run_Should_terminateWithError_When_calledWithUnknownArgument) {
+  int argc = 2;
+  char *argv[] = {(char *)"program_name", (char *)"unknown_arg"};
+  EXPECT_NE(0, run(argc, argv));
+}
+
+$0

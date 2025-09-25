@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: section
+# key: sec
+# --
+`(progn (setq unread-command-events '(12))(quoted-insert 1))`
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ${1:section}
+
+$0

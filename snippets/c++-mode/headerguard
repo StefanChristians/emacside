@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: headerguard
+# key: guard
+# --
+#ifndef ${1:`(ide-cpp-header-guard-id)`}
+#define $1
+
+$0
+#endif // $1

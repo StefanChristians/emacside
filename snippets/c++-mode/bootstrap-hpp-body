@@ -1,0 +1,13 @@
+# -*- mode: snippet -*-
+# name: bootstrap-hpp-body
+# --
+/// Bootstrap.
+///
+/// This function is called by main() to start the application.
+///
+/// \param argc number of command line arguments
+/// \param argv command line arguments
+///
+/// \returns 0 on success, error code otherwise
+int run(int argc, char *argv[]);
+$0

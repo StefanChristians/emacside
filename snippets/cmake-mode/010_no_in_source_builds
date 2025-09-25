@@ -1,0 +1,16 @@
+# -*- mode: snippet -*-
+# name: no_in_source_builds
+# group: module
+# --
+include_guard(GLOBAL)
+
+# Prevent users from building inside the source tree.
+
+if("\$\{PROJECT_SOURCE_DIR\}" STREQUAL "\$\{PROJECT_BINARY_DIR\}")
+  message(FATAL_ERROR
+    "IN-SOURCE BUILDS PROHIBITED.\\n"
+    "Use \\"cmake -B <destination>\\".\\n"
+    "\\n"
+    "(Remove created files with \\"rm -rf CMakeFiles CMakeCache.txt\\").\\n"
+  )
+endif()

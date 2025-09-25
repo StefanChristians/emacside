@@ -1,0 +1,21 @@
+# -*- mode: snippet -*-
+# name: subdirs
+# key: subdirs
+# type: command
+# --
+(if (ide-common-is-project-root)
+  ;; root CMakeLists.txt
+  (loop-for-each subdir (ide-cpp-cmake-subdirs-include)
+    (when (f-directory? (f-join (ide-common-active-path) subdir))
+      (if (member subdir ide-cpp-available-source-directories)
+        (insert (format "add_subdirectory(%s bin)\n" subdir))
+       (insert (format "add_subdirectory(%s)\n" subdir)))))
+ ;; CMakeLists.txt in subdir
+ (loop-for-each subdir (f-directories (ide-common-active-path))
+   ;; would be nice to ignore all .gitgnored dirs,
+   ;; but vc has no useful interface for that, so just exclude hidden .dirs
+   (unless (or (s-starts-with? (f-filename subdir) ".")
+               (member (f-filename subdir) (ide-cpp-cmake-subdirs-exclude)))
+     (if (member (f-filename subdir) ide-cpp-available-source-directories)
+       (insert (format "add_subdirectory(%s bin)\n" (f-filename subdir)))
+      (insert (format "add_subdirectory(%s)\n" (f-filename subdir)))))))

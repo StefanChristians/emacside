@@ -1,0 +1,39 @@
+# -*- mode: snippet -*-
+# name: installation
+# key: installation
+# type: command
+# --
+(let ((source-files (ide-cpp-list-source-files))
+      (target (ide-cpp-get-cmake-target)))
+  (when (and source-files (not (ide-cpp-is-test)))
+    (insert "# installation\n")
+
+    ;; install logical target
+    (if (ide-cpp-is-submodule)
+        ;; submodules
+        (cond ((and (ide-cpp-has-main-sibling) (ide-cpp-has-bootstrap-sibling))
+              ;; bootstrapped modular applications
+              (insert (format "install_as_submodule_without_exporting(%s_main)\n" target)))
+              ((ide-cpp-has-main-sibling)
+              ;; none-bootstrapped modular applications
+              (insert (format "install_as_submodule_without_exporting(%s)\n" target)))
+              ;; modular libraries
+              (t (insert (format "install_as_submodule_and_export(%s)\n" target))))
+        ;; none-modular
+        (cond ((and (ide-cpp-has-main-sibling) (ide-cpp-has-bootstrap-sibling))
+              ;; bootstrapped applications
+              (insert (format "install_without_exporting(%s_main)\n" target)))
+              ((ide-cpp-has-main-sibling)
+              ;; none-bootstrapped applications
+              (insert (format "install_without_exporting(%s)\n" target)))
+              ;; libraries
+              (t (insert (format "install_and_export(%s)\n" target)))))
+
+    ;; install public headers
+    ;; (except standard app, where headers are owned by core)
+    (unless (and (ide-cpp-has-main-sibling) (ide-cpp-application-libraries))
+      (when (ide-cpp-public-header-dirs)
+        (loop-for-each pubdir (ide-cpp-public-header-dirs)
+          (let ((reldir (ide-common-relative-path pubdir)))
+            (insert (format "install(DIRECTORY \"\${CMAKE_SOURCE_DIR\}/%s/\" TYPE INCLUDE COMPONENT devel)\n" reldir))))
+        (insert "\n")))))

@@ -1,0 +1,59 @@
+# -*- mode: snippet -*-
+# name: target
+# key: target
+# type: command
+# --
+(let ((source-files (ide-cpp-list-source-files))
+      (target (ide-cpp-get-cmake-target)))
+  (when source-files
+    (insert "# target\n")
+    (cond
+     ;; bootstrapped application
+     ;; ========================
+     ((and (ide-cpp-has-main-sibling) (ide-cpp-has-bootstrap-sibling))
+      (insert (format "add_executable(%s_main %s)\n"
+                      target
+                      (ide-cpp-has-main-sibling)))
+      (insert (format
+               "set_target_properties(%s_main PROPERTIES OUTPUT_NAME %s)\n"
+               target
+               (ide-cpp-project-or-submodule-name)))
+      (insert (format "target_link_libraries(%s_main PRIVATE %s)\n"
+                      target
+                      target))
+      (insert "\n")
+      (insert (format "add_library(%s STATIC)\n" target))
+      (when (ide-cpp-application-libraries)
+        (insert (format "target_link_libraries(%s PUBLIC" target))
+        (loop-for-each lib (ide-cpp-application-libraries)
+          (insert (format " %s" lib)))
+        (insert ")\n")))
+
+     ;; application without bootstrap
+     ;; =============================
+     ((ide-cpp-has-main-sibling)
+      (insert (format "add_executable(%s)\n" target))
+      (insert (format "set_target_properties(%s PROPERTIES OUTPUT_NAME %s)\n"
+                      target
+                      (ide-cpp-project-or-submodule-name)))
+      (when (ide-cpp-application-libraries)
+        (insert (format "target_link_libraries(%s PUBLIC" target))
+        (loop-for-each lib (ide-cpp-application-libraries)
+          (insert (format " %s" lib)))
+        (insert ")\n")))
+
+     ;; test
+     ;; ====
+     ((ide-cpp-is-test)
+      (insert (format "add_executable(%s_tests)\n" target))
+      (insert (format
+               "target_link_libraries(%s_tests PRIVATE %s %s_test_headers gtest_main gmock)\n" target target target)))
+
+     ;; static library
+     ;; ==============
+     (t
+      (insert (format "add_library(%s STATIC)\n" target))
+      (insert (format "set_target_properties(%s PROPERTIES OUTPUT_NAME %s)\n"
+                      target
+                      (ide-cpp-project-or-submodule-name)))))
+    (insert "\n")))

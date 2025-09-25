@@ -1,0 +1,17 @@
+# -*- mode: snippet -*-
+# name: readme-cpp-contributing
+# key: readme-cpp-contributing
+# --
+* Contributing
+
+Contributions are most welcome.
+Please follow Github's [[https://gist.github.com/Chaser324/ce0505fbed06b947d962][Fork & Pull]] workflow:
+
+1. Create a Fork
+2. Clone your Fork
+3. Modify the Code
+4. Update your Fork with upstream changes
+5. Push your Changes
+6. Create a Pull Request
+
+$0

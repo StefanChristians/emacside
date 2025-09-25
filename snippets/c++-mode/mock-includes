@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: mock-includes
+# --
+#include <gmock/gmock.h>
+
+$0

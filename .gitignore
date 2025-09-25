@@ -1,0 +1,97 @@
+# Emacs ignore rules
+# Based on https://github.com/github/gitignore/blob/main/Global/Emacs.gitignore
+
+### Emacs: Directories ###
+/var/
+/auto/
+/cask/
+/dist/
+/elpa/
+/cache/
+/.cache/
+/eshell/
+/quelpa/
+/server/
+/straight/
+/.git.bak/
+/.git.back/
+/.git.orig/
+/eln-cache/
+/extension/
+/transient/
+/.git.private/
+/auto-save-list/
+
+### Emacs: Files ###
+newsrc
+places
+recentf
+projects
+savehist
+bookmarks
+custom.el
+session.*
+newsrc.eld
+.lsp-session*
+.dap-breakpoints
+.last-package-update*
+projectile-bookmarks.eld
+company-statistics-cache.el
+
+### Emacs: Elisp ###
+# Compiled
+*.elc
+
+# Backup files
+*~
+.\#*
+\#*\#
+
+# Undo-tree save-files
+*.~undo-tree
+
+# Flycheck
+flycheck_*.el
+
+# flymake-mode
+*_flymake.*
+
+# reftex files
+*.rel
+
+# Org-mode
+.org-id-locations
+*_archive
+
+# AUCTeX auto folder
+*.fls
+*.fdb_latexmk
+
+# Directory configuration
+.dir-locals.el
+
+# Network security
+network-security.data
+
+# Desktop
+.emacs.desktop
+.emacs.desktop.lock
+
+### OS / Editors ###
+# macOS
+.DS_Store
+__MACOSX/
+.LSOverride
+.AppleDouble
+
+# Windows
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+
+# Vim / other editors
+*.swp
+*.swo
+*.swn
+

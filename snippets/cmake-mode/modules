@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: modules
+# key: mods
+# type: command
+# --
+(loop-for-each dir (ide-cpp-used-cmake-directories)
+  (insert
+    (format
+     "list(APPEND CMAKE_MODULE_PATH \"\$\{CMAKE_SOURCE_DIR\}/%s\")\n"
+     dir)))
+(loop-for-each module (ide-cpp-used-cmake-modules)
+  (insert (format "include(%s)\n" module)))

@@ -1,0 +1,38 @@
+# -*- mode: snippet -*-
+# name: compile_commands
+# group: module
+# --
+include_guard(GLOBAL)
+
+# Generate compile_commands.json and copy it to project root
+
+if (\$\{CMAKE_EXPORT_COMPILE_COMMANDS\})
+
+  # generate compile_commands.json
+  add_custom_command(
+    OUTPUT "\$\{CMAKE_BINARY_DIR\}/compile_commands.json"
+    COMMAND "\$\{CMAKE_COMMAND\}" -B "\$\{CMAKE_BINARY_DIR\}" -S "\$\{CMAKE_SOURCE_DIR\}"
+  )
+
+  add_custom_target(
+    generate_compile_commands
+    DEPENDS "\$\{CMAKE_BINARY_DIR\}/compile_commands.json"
+  )
+
+  # copy compile_commands.json to project root
+  add_custom_command(
+    OUTPUT "\$\{CMAKE_SOURCE_DIR\}/compile_commands.json"
+    COMMAND "\$\{CMAKE_COMMAND\}" -E copy_if_different "\$\{CMAKE_BINARY_DIR\}/compile_commands.json" "\$\{CMAKE_SOURCE_DIR\}/compile_commands.json"
+    DEPENDS generate_compile_commands "\$\{CMAKE_BINARY_DIR\}/compile_commands.json"
+  )
+
+  add_custom_target(
+    compile_commands
+    # ALL
+    DEPENDS "\$\{CMAKE_SOURCE_DIR\}/compile_commands.json"
+  )
+
+else()
+  add_custom_target(compile_commands COMMAND true COMMENT "Exporting compile commands disabled - nothing to do")
+  add_custom_target(generate_compile_commands COMMAND true COMMENT "Exporting compile commands disabled - nothing to do")
+endif()

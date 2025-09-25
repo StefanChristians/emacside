@@ -1,0 +1,287 @@
+# -*- mode: snippet -*-
+# name: i18ngen
+# group: buildtool
+# key: i18ngen
+# expand-env: ((yas-indent-line 'fixed))
+# --
+#!/usr/bin/python
+
+# gettext wrapper to generate message translation dictionaries for localization
+
+import os
+import sys
+import argparse
+import subprocess
+
+from shutil import which
+from pathlib import Path
+from itertools import chain
+
+
+# defaults
+default_output_dir = "`(symbol-value 'ide-cpp-default-localize-directory)`"
+default_modules_dir = "`(symbol-value 'ide-cpp-default-module-base-directory)`"
+default_input_dirs = (`(concat (mapconcat (lambda (x) (format "\"%s\"" x)) (append ide-cpp-available-include-directories ide-cpp-available-source-directories) ", "))`)
+default_input_files = (`(concat (mapconcat (lambda (x) (format "\"%s\"" x)) (append ide-cpp-available-cpp-header-extensions ide-cpp-available-cpp-source-extensions) ", "))`)
+
+gettext_command = "xgettext"
+msginit_command = "msginit"
+msgmerge_command = "msgmerge"
+
+
+# command line arguments
+
+parser = argparse.ArgumentParser(
+    description=("gettext wrapper to generate "
+                 "message translation dictionaries "
+                 " for localization"))
+
+list_group = parser.add_argument_group("information")
+list_group.add_argument("--list-localizations", action="store_true",
+                        help="list existing localizations")
+list_group.add_argument("--list-modules", action="store_true",
+                        help="list project modules")
+list_group.add_argument("--list-defaults",
+                        action="store_true", help="list default arguments")
+
+input_group = parser.add_argument_group("input")
+input_group.add_argument("-d", "--modules-dir",
+                         default=default_modules_dir,
+                         help=("for modular projects, "
+                               "base directory containing modules"))
+input_group.add_argument("-m", "--module", nargs='*',
+                         default="",
+                         help=("for modular projects, "
+                               "module to translate (all modules if empty)"))
+input_group.add_argument("-i", "--input-dir", nargs='*',
+                         default=default_input_dirs,
+                         help="input directory containing files to translate")
+input_group.add_argument("-f", "--input-file", nargs='*',
+                         default=default_input_files,
+                         help=("extensions of filenames to parse "
+                               "for translatable strings"))
+
+output_group = parser.add_argument_group("output")
+output_group.add_argument("-o", "--output-dir",
+                          default=default_output_dir,
+                          help="output directory")
+output_group.add_argument("-l", "--locale", nargs='*',
+                          default="",
+                          help=("add or update dictionary for given locale "
+                                "(all existing locales if empty)"))
+
+args = parser.parse_args()
+
+# working directory is project root
+project_root = Path(sys.path[0]).parent.absolute()
+os.chdir(project_root)
+
+# check if this is a modular project
+if not Path(args.modules_dir).exists():
+    args.modules_dir = ""
+
+
+def list_of_modules():
+    """
+    returns a list of modules, or empty list if the project is not modular
+    """
+    modules_list = []
+    if args.modules_dir:
+        modules_list = sorted(next(os.walk(args.modules_dir))[1])
+    return modules_list
+
+
+def module_paths():
+    """
+    returns a list of paths to modules for further processing
+    """
+    module_paths = []
+    if args.modules_dir:
+        # modular project
+        if args.module:
+            # only selected modules
+            for module in sorted(args.module):
+                module_paths.append(Path(project_root)
+                                    .joinpath(args.modules_dir)
+                                    .joinpath(module))
+        else:
+            # all modules
+            for module in list_of_modules():
+                module_paths.append(Path(project_root)
+                                    .joinpath(args.modules_dir)
+                                    .joinpath(module))
+    else:
+        # non-modular project
+        module_paths.append(project_root)
+    return module_paths
+
+
+def print_defaults():
+    """
+    print default parameters
+    """
+    print("input:")
+    if args.modules_dir:
+        print("-d, --modules-dir", args.modules_dir)
+        print("-m, --module", ' '.join(args.module))
+    print("-i, --input-dir", ' '.join(default_input_dirs))
+    print("-f, --input-file", "'" + "' '".join(default_input_files) + "'")
+    print("output:")
+    print("-o, --output-dir", default_output_dir)
+    print("-l, --locale", ' '.join(args.locale))
+
+
+def list_of_existing_localizations(module_path):
+    """
+    returns a list of .po localization dictionaries existing in module_path
+    """
+    localization_list = []
+    localization_path = Path(module_path).joinpath(args.output_dir)
+    if Path(localization_path).exists():
+        for localization_file in sorted(Path(localization_path).glob('*.po')):
+            localization_list.append(Path(localization_file).stem)
+    return localization_list
+
+
+def pot_path(module_path):
+    """
+    ensures directory for module's .pot dictionary template exists
+    and returns its path.
+    """
+    pot_path = Path(module_path).joinpath(args.output_dir)
+    Path(pot_path).mkdir(parents=True, exist_ok=True)
+    return pot_path
+
+
+def pot_file(module_path):
+    """
+    returns the module's .pot dictionary template
+    """
+    return str(Path(pot_path(module_path)).joinpath("messages.pot")
+               .relative_to(project_root))
+
+
+def po_file(module_path, language):
+    """
+    returns the module's <language>.po dictionary
+    """
+    return str(Path(pot_path(module_path)).joinpath("\{\}.po".format(language))
+               .relative_to(project_root))
+
+
+def source_files(module_path):
+    """
+    returns a list of source files to parse for translatable strings
+    """
+    source_files = []
+    for source_dir in args.input_dir:
+        for extension in args.input_file:
+            for source_file in (Path(module_path)
+                                .joinpath(source_dir)
+                                .rglob("*\{\}".format(extension))):
+                source_files.append(str(source_file.relative_to(project_root)))
+    return sorted(source_files)
+
+
+def generate_dictionaries():
+    """
+    generate translation dictionaries
+    """
+    for module_path in module_paths():
+
+        # generate .pot template
+        command = list(chain(
+            [gettext_command],
+            ["--keyword=translate:1,1t", "--keyword=translate:1c,2,2t",
+             "--keyword=translate:1,2,3t", "--keyword=translate:1c,2,3,4t",
+             "--keyword=gettext:1", "--keyword=pgettext:1c,2",
+             "--keyword=ngettext:1,2", "--keyword=npgettext:1c,2,3"],
+            ["--from-code=UTF-8"],
+            ["-o", pot_file(module_path)],
+            ["--no-wrap"],
+            ["--force-po"],
+            ["--package-name=\{\}".format(Path(module_path).name)],
+            source_files(module_path)
+        ))
+        print("\{\} --output=\{\}"
+              .format(gettext_command, pot_file(module_path)))
+        subprocess.run(command)
+
+        # initialize or extend .po dictionaries
+        localizations = args.locale
+        if not localizations:
+            localizations = list_of_existing_localizations(module_path)
+        for language in localizations:
+            dictionary = po_file(module_path, language)
+            if Path(dictionary).exists():
+                # extend existing dictionary with new messages from template
+                command = list(chain(
+                    [msgmerge_command],
+                    ["--update", "--backup=none"],
+                    ["--no-fuzzy-matching"],
+                    ["--force-po"],
+                    ["--no-wrap"],
+                    [dictionary, pot_file(module_path)],
+                    ))
+                print("\{\} \{\}".format(msgmerge_command, dictionary))
+            else:
+                # generate new dictionary from template
+                command = list(chain(
+                    [msginit_command],
+                    ["-i", pot_file(module_path)],
+                    ["-o", dictionary],
+                    ["-l", "\{\}.UTF-8".format(language)],
+                    ["--no-translator"],
+                    ["--no-wrap"],
+                    ))
+                print("\{\} --output-file=\{\}"
+                      .format(msginit_command, dictionary))
+            subprocess.run(command)
+
+
+def main():
+
+    # retrieve information
+    isList = False
+
+    # list default arguments
+    if args.list_defaults:
+        isList = True
+        print_defaults()
+
+    # list modules
+    if args.list_modules:
+        isList = True
+        if args.modules_dir:
+            print(' '.join(list_of_modules()))
+        else:
+            print(Path(project_root).name)
+
+    # list localizations per module
+    if args.list_localizations:
+        isList = True
+        for module_path in module_paths():
+            print(Path(module_path).name + ": "
+                  + ' '.join(list_of_existing_localizations(module_path)))
+
+    if isList:
+        # terminate if this was a call for information retrieval
+        sys.exit()
+
+    # check for requirements
+    if not which(gettext_command):
+        print("\{\} is required".format(gettext_command))
+        sys.exit(1)
+    if not which(msginit_command):
+        print("\{\} is required".format(msginit_command))
+        sys.exit(1)
+    if not which(msgmerge_command):
+        print("\{\} is required".format(msgmerge_command))
+        sys.exit(1)
+
+    # PROCESSING
+    generate_dictionaries()
+
+
+if __name__ == '__main__':
+    main()

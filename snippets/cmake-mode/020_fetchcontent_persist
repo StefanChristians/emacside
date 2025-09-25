@@ -1,0 +1,213 @@
+# -*- mode: snippet -*-
+# name: fetchcontent_persist
+# group: module
+# --
+include_guard(GLOBAL)
+
+# Download dependencies only once.
+
+include(FetchContent)
+
+# default location to download dependencies with FetchContent_Declare()
+if(DEFINED ENV\{CMAKE_FETCHCONTENT_DOWNLOAD_DIR\})
+  set(CMAKE_FETCHCONTENT_DOWNLOAD_DIR \$ENV\{CMAKE_FETCHCONTENT_DOWNLOAD_DIR\} CACHE STRING "Persistent directory for FetchContent downloads")
+endif()
+
+# load required packages
+find_package(Git REQUIRED)
+
+# Persistently download FetchContent dependencies.
+#
+# By default FetchContent_Declare() downloads dependencies into the _deps
+# directory in the build tree. Consequently, the same dependency needs to
+# be re-downloaded for each configuration.
+#
+# This function extends FetchContent_Declare() to allow for persistent
+# downloads that can be reused across configurations and projects.
+# (Only downloads from GIT repositories are intercepted).
+#
+# If the caller provides a SOURCE_DIR argument, that location is used for
+# downloads. Otherwise, the location cached in CMAKE_FETCHCONTENT_DOWNLOAD_DIR
+# is used. If that is empty as well, this function falls back to default
+# FetchContent_Declare() behavior.
+#
+# The dependency is downloaded to SOURCE_DIR/<name>/GIT_TAG, so that different
+# downloaded versions of the same library are available.
+#
+# Some GIT_TAGs have special meaning:
+# - main (default if no GIT_TAG is supplied)
+#   The main branch is newly downloaded on each configuration run to
+#   ensure that always the newest version is used. This is consistent
+#   with default FetchContent_Declare() behavior when SOURCE_DIR is provided.
+# - latest
+#   The dependency is only downloaded when a newer tagged version exists
+#   in the remote repository.
+# In all other cases, for example fixed version tags, the dependency is
+# downloaded only once and will never be downloaded again unless it is
+# removed from the disk.
+#
+# The function sets <name>_FETCHCONTENT_ARGS in parent scope with the arguments
+# with which FetchContent_Declare() was actually called so that the caller can
+# use them to call FetchContent_Populate() instead of
+# FetchContent_MakeAvailable() if desired.
+function(FetchContent_Declare_Persist name)
+  # parse arguments
+  set(options)
+  set(oneValueArgs GIT_REPOSITORY GIT_TAG SOURCE_DIR)
+  set(multiValueArgs)
+  cmake_parse_arguments(MYARG "\$\{options\}" "\$\{oneValueArgs\}" "\$\{multiValueArgs\}" \$\{ARGN\})
+
+  # only intercept downloads from GIT repositories
+  if(NOT DEFINED MYARG_GIT_REPOSITORY)
+    # call default invocation of FetchContent_Declare()
+    FetchContent_Declare("\$\{name\}" \$\{ARGN\})
+    set(\$\{name\}_FETCHCONTENT_ARGS "\$\{ARGN\}" PARENT_SCOPE)
+    return()
+  endif()
+
+  # expand SOURCE_DIR to SOURCE_DIR/<name>/GIT_TAG
+  if(NOT DEFINED MYARG_SOURCE_DIR)
+    if(NOT DEFINED CMAKE_FETCHCONTENT_DOWNLOAD_DIR)
+      # no download directory defined,
+      # call default invocation of FetchContent_Declare()
+      FetchContent_Declare("\$\{name\}" \$\{ARGN\})
+      set(\$\{name\}_FETCHCONTENT_ARGS "\$\{ARGN\}" PARENT_SCOPE)
+      return()
+    endif()
+    set(MYARG_SOURCE_DIR "\$\{CMAKE_FETCHCONTENT_DOWNLOAD_DIR\}")
+  endif()
+  if (NOT DEFINED MYARG_GIT_TAG)
+    set(MYARG_GIT_TAG "main")
+  endif()
+  set(MYARG_SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}/\$\{name\}/\$\{MYARG_GIT_TAG\}")
+
+  # main (or master) tag
+  # always download
+  if("\$\{MYARG_GIT_TAG\}" STREQUAL "main" OR "\$\{MYARG_GIT_TAG\}" STREQUAL "master")
+    message(STATUS "downloading \$\{name\} \$\{MYARG_GIT_TAG\}")
+    FetchContent_Declare(
+      "\$\{name\}"
+      GIT_REPOSITORY "\$\{MYARG_GIT_REPOSITORY\}"
+      GIT_TAG "\$\{MYARG_GIT_TAG\}"
+      SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+      \$\{MYARG_UNPARSED_ARGUMENTS\}
+    )
+    set(\$\{name\}_FETCHCONTENT_ARGS
+      GIT_REPOSITORY "\$\{MYARG_GIT_REPOSITORY\}"
+      GIT_TAG "\$\{MYARG_GIT_TAG\}"
+      SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+      \$\{MYARG_UNPARSED_ARGUMENTS\}
+      PARENT_SCOPE
+    )
+    return()
+  endif()
+
+  # versioned tag
+  if(NOT "latest" STREQUAL "\$\{MYARG_GIT_TAG\}")
+    if(NOT EXISTS "\$\{MYARG_SOURCE_DIR\}")
+      # initial download
+      message(STATUS "downloading \$\{name\} \$\{MYARG_GIT_TAG\}")
+      FetchContent_Declare(
+        "\$\{name\}"
+        GIT_REPOSITORY "\$\{MYARG_GIT_REPOSITORY\}"
+        GIT_TAG "\$\{MYARG_GIT_TAG\}"
+        SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+        \$\{MYARG_UNPARSED_ARGUMENTS\}
+      )
+      set(\$\{name\}_FETCHCONTENT_ARGS
+        GIT_REPOSITORY "\$\{MYARG_GIT_REPOSITORY\}"
+        GIT_TAG "\$\{MYARG_GIT_TAG\}"
+        SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+        \$\{MYARG_UNPARSED_ARGUMENTS\}
+        PARENT_SCOPE
+      )
+    else()
+      # re-use existing download
+      message(STATUS "reusing \$\{name\} \$\{MYARG_GIT_TAG\}")
+      FetchContent_Declare(
+        "\$\{name\}"
+        SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+        \$\{MYARG_UNPARSED_ARGUMENTS\}
+      )
+      set(\$\{name\}_FETCHCONTENT_ARGS
+        SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+        \$\{MYARG_UNPARSED_ARGUMENTS\}
+        PARENT_SCOPE
+      )
+    endif()
+    return()
+  endif()
+
+  # latest tag
+
+  # get latest version information from GitHub API
+  cmake_path(GET MYARG_GIT_REPOSITORY STEM repo)
+  cmake_path(GET MYARG_GIT_REPOSITORY PARENT_PATH ownerpath)
+  cmake_path(GET ownerpath FILENAME owner)
+  set(git_api "https://api.github.com/repos/\$\{owner\}/\$\{repo\}/releases/latest")
+  set(version_file "\$\{CMAKE_BINARY_DIR\}/fetchcontent_\$\{name\}_latest.json")
+  file(DOWNLOAD "\$\{git_api\}" "\$\{version_file\}" TIMEOUT 10)
+  file(READ "\$\{version_file\}" my_json_string)
+  string(JSON latest_version GET "\$\{my_json_string\}" "tag_name")
+  file(REMOVE "\$\{version_file\}")
+
+  # initial download
+  if(NOT EXISTS "\$\{MYARG_SOURCE_DIR\}")
+    message(STATUS "downloading \$\{name\} \$\{MYARG_GIT_TAG\} \$\{latest_version\}")
+    FetchContent_Declare(
+      "\$\{name\}"
+      GIT_REPOSITORY "\$\{MYARG_GIT_REPOSITORY\}"
+      GIT_TAG "\$\{latest_version\}"
+      SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+      \$\{MYARG_UNPARSED_ARGUMENTS\}
+    )
+    set(\$\{name\}_FETCHCONTENT_ARGS
+      GIT_REPOSITORY "\$\{MYARG_GIT_REPOSITORY\}"
+      GIT_TAG "\$\{latest_version\}"
+      SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+      \$\{MYARG_UNPARSED_ARGUMENTS\}
+      PARENT_SCOPE
+    )
+    return()
+  endif()
+
+  #update
+  execute_process(COMMAND
+    \$\{GIT_EXECUTABLE\} -C "\$\{MYARG_SOURCE_DIR\}" describe --tags
+    OUTPUT_VARIABLE current_version
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
+  if(NOT "\$\{current_version\}" STREQUAL "\$\{latest_version\}")
+    message(STATUS "updating \$\{name\} \$\{MYARG_GIT_TAG\} to \$\{latest_version\}")
+    FetchContent_Declare(
+      "\$\{name\}"
+      GIT_REPOSITORY "\$\{MYARG_GIT_REPOSITORY\}"
+      GIT_TAG "\$\{latest_version\}"
+      SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+      \$\{MYARG_UNPARSED_ARGUMENTS\}
+    )
+    set(\$\{name\}_FETCHCONTENT_ARGS
+      GIT_REPOSITORY "\$\{MYARG_GIT_REPOSITORY\}"
+      GIT_TAG "\$\{latest_version\}"
+      SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+      \$\{MYARG_UNPARSED_ARGUMENTS\}
+      PARENT_SCOPE
+    )
+    return()
+  endif()
+
+  # re-use
+  message(STATUS "re-using \$\{name\} \$\{MYARG_GIT_TAG\} \$\{current_version\}")
+  FetchContent_Declare(
+    "\$\{name\}"
+    SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+    \$\{MYARG_UNPARSED_ARGUMENTS\}
+  )
+  set(\$\{name\}_FETCHCONTENT_ARGS
+    SOURCE_DIR "\$\{MYARG_SOURCE_DIR\}"
+    \$\{MYARG_UNPARSED_ARGUMENTS\}
+    PARENT_SCOPE
+  )
+
+endfunction()

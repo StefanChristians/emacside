@@ -1,0 +1,38 @@
+# -*- mode: snippet -*-
+# name: analysis
+# key: analysis
+# type: command
+# --
+(let ((source-files (ide-cpp-list-source-files))
+      (target (ide-cpp-get-cmake-target)))
+  (when source-files
+    (insert "# analysis\n")
+    (cond
+     ;; application
+     ;; ===========
+     ((ide-cpp-has-main-sibling)
+      (insert (format "measure_coverage(%s)\n" target))
+      (insert (format "format(%s)\n" target))
+      (insert (format "static_checks(%s)\n" target))
+      (insert (format "do_if_exists(add_locale_path_for_development %s)\n" target)))
+
+     ;; test
+     ;; ====
+     ((ide-cpp-is-test)
+      (insert (format "gtest_discover_tests(%s_tests)\n" target))
+      (insert (format "report_coverage(%s_tests)\n" target))
+      (insert (format "format(%s_tests)\n" target))
+      (insert (format "dynamic_checks(%s_tests)\n" target)))
+
+     ;; static library
+     ;; ==============
+     (t
+      (insert (format "measure_coverage(%s)\n" target))
+      (if header-dirs
+        (insert (format "format(%s %s)\n" target (s-join " "
+                (mapcar (lambda (dir)
+                              (format "\"%s\"" dir))
+                            header-dirs))))
+        (insert (format "format(%s)\n" target)))
+      (insert (format "static_checks(%s)\n" target))))
+    (insert "\n")))

@@ -1,0 +1,15 @@
+# -*- mode: snippet -*-
+# name: apidocs
+# key: apidocs
+# type: command
+# --
+(loop-for-each subdir ide-cpp-available-include-directories
+  (when (f-directory? (f-join (ide-common-active-path) subdir))
+    (insert (format
+             "apidocs_append_public(\"\$\{CMAKE_CURRENT_SOURCE_DIR\}/%s\")\n"
+             subdir))))
+(loop-for-each subdir ide-cpp-available-source-directories
+  (when (f-directory? (f-join (ide-common-active-path) subdir))
+    (insert (format
+             "apidocs_append_private(\"\$\{CMAKE_CURRENT_SOURCE_DIR\}/%s\")\n"
+             subdir))))

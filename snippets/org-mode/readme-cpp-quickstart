@@ -1,0 +1,31 @@
+# -*- mode: snippet -*-
+# name: readme-cpp-quickstart
+# key: readme-cpp-quickstart
+# --
+* Quick Start
+
+This software uses [[https://cmake.org/][CMake]] as build system generator.
+
+To build the software, change to the project root directory and run CMake:
+
+#+BEGIN_SRC sh
+\$ cmake -B path/to/output/directory
+#+END_SRC
+
+This configures and generates the build system using default compilers and generators.
+Refer to the [[https://cmake.org/cmake/help/latest/manual/cmake.1.html][CMake documentation]] and following chapters for selecting specific compilers, generators, and other command line arguments.
+
+The output directory is arbitrary.
+Common choices are ~build~ or ~/tmp/build~.
+
+After generating the build system, run
+
+#+BEGIN_SRC sh
+\$ cmake --build path/to/output/directory
+#+END_SRC
+
+to compile and link the software.
+
+When changing configuration parameters, delete the output directory and re-run CMake for a clean build.
+
+$0

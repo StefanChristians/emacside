@@ -1,0 +1,68 @@
+# -*- mode: snippet -*-
+# name: msgfmt
+# group: module
+# --
+include_guard(GLOBAL)
+
+# Compile portable object (.po) translation dictionaries
+# to machine objects (.mo) with msgfmt
+
+# default location for generated locales
+set(CMAKE_LOCALE_OUTPUT_DIR "locale" CACHE STRING "Output directory in build tree for compiled translation dictionaries.")
+
+# find msgfmt executable
+find_program(MSGFMT_EXECUTABLE msgfmt)
+if (MSGFMT_EXECUTABLE)
+  set(MSGFMT_FOUND True)
+  execute_process(
+    COMMAND \$\{MSGFMT_EXECUTABLE\} --version
+    OUTPUT_VARIABLE MSGFMT_VERSION)
+  string(REGEX REPLACE "^msgfmt \\\\([^0-9]*\\\\) ([0-9\\\\.]+).*" "\\\\1" MSGFMT_VERSION "\$\{MSGFMT_VERSION\}")
+  message(STATUS "Found msgfmt: \$\{MSGFMT_EXECUTABLE\} (found version \\"\$\{MSGFMT_VERSION\}\\")")
+endif()
+
+mark_as_advanced(
+  MSGFMT_EXECUTABLE
+)
+
+# dynamic list of translation targets
+set(translation_targets "" CACHE INTERNAL "")
+macro(translations_append domain file)
+  if(MSGFMT_FOUND)
+    # get locale name from po file
+    get_filename_component(LOCALE_CODE "\$\{file\}" NAME_WE)
+    set(MO_PATH "\$\{CMAKE_BINARY_DIR\}/\$\{CMAKE_LOCALE_OUTPUT_DIR\}/\$\{LOCALE_CODE\}/LC_MESSAGES")
+    set(MO_FILE "\$\{MO_PATH\}/\$\{domain\}.mo")
+    # create translation dictionary target
+    add_custom_command(
+      OUTPUT "\$\{MO_FILE\}"
+      COMMAND cmake -E make_directory "\$\{MO_PATH\}"
+      COMMAND \$\{MSGFMT_EXECUTABLE\} -o "\$\{MO_FILE\}" "\$\{file\}"
+      DEPENDS "\$\{file\}"
+      COMMENT "compiling \$\{LOCALE_CODE\}"
+      VERBATIM
+    )
+    # append translation dictionary to list of targets
+    set(templist \$\{translation_targets\})
+    list(APPEND templist "\$\{MO_FILE\}")
+    set(translation_targets \$\{templist\} CACHE INTERNAL "")
+    # install translations
+    if(NOT TRANSLATIONS_INSTALL_RULE_ADDED)
+      set(TRANSLATIONS_INSTALL_RULE_ADDED true)
+      install(DIRECTORY "\$\{CMAKE_BINARY_DIR\}/\$\{CMAKE_LOCALE_OUTPUT_DIR\}/"
+        TYPE LOCALE COMPONENT runtime OPTIONAL)
+    endif()
+  endif()
+endmacro()
+
+function(generate_translations)
+  if(MSGFMT_FOUND)
+    add_custom_target(translate ALL DEPENDS \$\{translation_targets\})
+  endif()
+endfunction()
+
+function(add_locale_path_for_development target)
+  if(MSGFMT_FOUND)
+    target_compile_options(\$\{target\} PRIVATE \$<\$<CONFIG:Debug>:-D DEV_LOCALE_PATH=\\"\$\{CMAKE_BINARY_DIR\}/\$\{CMAKE_LOCALE_OUTPUT_DIR\}\\">)
+  endif()
+endfunction()

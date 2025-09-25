@@ -1,0 +1,53 @@
+# -*- mode: snippet -*-
+# name: user_documentation
+# group: module
+# --
+include_guard(GLOBAL)
+
+# Build user documentation using Asciidoctor.
+
+# default location for generated user documentation
+set(CMAKE_USERDOCS_OUTPUT_DIR "output/docs/userdocs" CACHE STRING "Output directory in build tree for generated user documentation.")
+
+# find asciidoctor executable
+find_program(ASCIIDOCTOR_EXECUTABLE asciidoctor)
+if (ASCIIDOCTOR_EXECUTABLE)
+  set(ASCIIDOCTOR_FOUND True)
+  execute_process(
+    COMMAND \$\{ASCIIDOCTOR_EXECUTABLE\} --version
+    OUTPUT_VARIABLE ASCIIDOCTOR_VERSION
+  )
+  string(REGEX REPLACE "^Asciidoctor ([^ ]+) .*" "\\\\1" ASCIIDOCTOR_VERSION "\$\{ASCIIDOCTOR_VERSION\}")
+  message(STATUS "Found Asciidoctor: \$\{ASCIIDOCTOR_EXECUTABLE\} (found version \\"\$\{ASCIIDOCTOR_VERSION\}\\")")
+
+  add_custom_target(userdocs COMMENT "Running Asciidoctor for target userdocs" WORKING_DIRECTORY "\$\{CMAKE_SOURCE_DIR\}")
+
+else()
+  add_custom_target(userdocs COMMAND true COMMENT "Asciidoctor not found - nothing to do")
+endif()
+
+mark_as_advanced(
+  ASCIIDOCTOR_EXECUTABLE
+)
+
+# run separate command for building each piece of documentation
+macro(userdocs_append name file)
+  if (ASCIIDOCTOR_FOUND)
+    set(docsdir "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_USERDOCS_OUTPUT_DIR\}")
+    add_custom_target("userdocs_\$\{name\}" COMMAND \$\{ASCIIDOCTOR_EXECUTABLE\} -b html5 -d article -D "\$\{docsdir\}" -o "\$\{name\}.html" "\$\{file\}")
+    add_dependencies(userdocs "userdocs_\$\{name\}")
+    # install user documentation
+    if(NOT USERDOCS_INSTALL_RULE_ADDED)
+      set(USERDOCS_INSTALL_RULE_ADDED true)
+      install(DIRECTORY "\$\{docsdir\}/" TYPE DOC COMPONENT runtime OPTIONAL)
+    endif()
+  endif()
+endmacro()
+
+# ensure output directory exists before generating documentation
+macro(userdocs_generate)
+  if (ASCIIDOCTOR_FOUND)
+    set(docsdir "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_USERDOCS_OUTPUT_DIR\}")
+    file(MAKE_DIRECTORY "\$\{docsdir\}")
+  endif()
+endmacro()

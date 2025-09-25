@@ -1,0 +1,17 @@
+# -*- mode: snippet -*-
+# name: documentation
+# group: module
+# --
+include_guard(GLOBAL)
+
+# Generate documentation.
+
+# generic documentation target
+add_custom_target(docs DEPENDS apidocs graphviz COMMENT "Generating documentation")
+add_dependency_if_exists(docs userdocs)
+
+# finalize documentation generation
+function(docs_generate)
+  apidocs_generate()
+  do_if_exists(userdocs_generate)
+endfunction()

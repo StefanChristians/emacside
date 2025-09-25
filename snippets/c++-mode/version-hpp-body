@@ -1,0 +1,27 @@
+# -*- mode: snippet -*-
+# name: version-hpp-body
+# --
+namespace version \{
+/// Project Name
+extern const std::string ProjectName;
+
+/// Project Description
+extern const std::string ProjectDescription;
+
+/// Translation Domain
+extern const std::string Domain;
+
+/// Major Version, increased on breaking backward compatibility
+extern const unsigned int MajorVersion;
+
+/// Minor Version, increased on introducing new features
+extern const unsigned int MinorVersion;
+
+/// Patch Level, increased on fixes to existing code
+extern const unsigned int PatchLevel;
+
+/// String representation of Version:
+/// MajorVersion.MinorVersion.PatchLevel(-Suffix)
+extern const std::string VersionString;
+\} // namespace version
+$0

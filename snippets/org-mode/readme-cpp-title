@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: readme-cpp-title
+# key: readme-cpp-title
+# --
+#+title: ${1:`(ide-common-get-project-human-name)`}
+#+subtitle: ${2:Description.}
+
+$0

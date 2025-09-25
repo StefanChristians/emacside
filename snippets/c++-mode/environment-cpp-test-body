@@ -1,0 +1,27 @@
+# -*- mode: snippet -*-
+# name: environment-cpp-test-body
+# --
+TEST_F(EnvironmentTests,
+       locale_Should_returnFullyQualifiedLocaleName_When_setWithEncoding) \{
+  testObject.locale("en_US.UTF-8");
+  EXPECT_EQ("en_US.UTF-8", testObject.locale());
+\}
+
+TEST_F(EnvironmentTests,
+       locale_Should_returnFullyQualifiedLocaleName_When_setWithoutEncoding) \{
+  testObject.locale("en_US");
+  EXPECT_EQ("en_US.UTF-8", testObject.locale());
+\}
+
+TEST_F(EnvironmentTests,
+       locale_Should_returnDefaultLocaleName_When_setWithDefaultLocale) \{
+  testObject.locale("");
+  EXPECT_EQ(std::locale("").name(), testObject.locale());
+\}
+
+TEST_F(EnvironmentTests, locale_Should_returnDefaultLocaleName_When_notSet) \{
+  testObject.locale("");
+  EXPECT_EQ(std::locale("").name(), testObject.locale());
+\}
+
+$0

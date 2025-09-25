@@ -1,0 +1,56 @@
+* Emacs IDE for C++
+
+A ready-to-use Emacs IDE for C++ that provides:
+
+- Project scaffolding and boilerplate code generation
+- Code navigation, completion, and syntax highlighting
+- Integrated CMake support and build system
+- Unit test integration
+- Version control and Git support
+
+[[screenshots/treemacs.png]][Screenshot of project tree]
+
+** Quick Start
+
+1. Backup your current Emacs config:
+
+  #+BEGIN_SRC sh
+    mv ~/.emacs.d ~/.emacs.d.bak
+  #+END_SRC
+
+2. Clone this repository:
+
+  #+BEGIN_SRC sh
+    git clone https://github.com/StefanChristians/emacsedi.git ~/.emacs.d
+  #+END_SRC
+
+3. Start Emacs. Required packages will be automatically installed.
+
+4. Create a new C++ project:
+   - Right-click in the Treemacs frame → =Projects= → =Create New C++ Project=
+   - Choose project type: Simple, Standard, Library, or Large
+
+[[screenshots/project_types.png]][Sample project types]
+
+** Project Types
+
+- *Simple*: All source files in a single directory for quick proof-of-concept projects
+- *Standard*: Separate `app` and `core`, includes documentation and localization
+- *Library*: Stand-alone, shareable libraries with headers in `include`
+- *Large*: Multiple independent modules, each with their own sources, headers, and tests
+
+** Features
+
+Some highlighted user-facing functionality:
+
+- *Code navigation & completion*: LSP support with [[https://github.com/emacs-lsp/lsp-ui][lsp-ui]] and [[https://github.com/company-mode/company-mode][company-mode]]
+- *Syntax highlighting*: Modern C++ highlighting ([[https://github.com/ludwigpacifici/modern-cpp-font-lock][modern-cpp-font-lock]])
+- *Project management*: Tree view of files, quick open, workspace handling ([[https://github.com/Alexander-Miller/treemacs][treemacs]])
+- *Version control*: Git integration ([[https://github.com/magit/magit][magit]]), view changes inline ([[https://github.com/dgutov/diff-hl][diff-hl]])
+- *Convenience*: Auto-insert boilerplate code, snippet templates ([[https://github.com/joaotavora/yasnippet][yasnippet]]), cursor beacon, code folding, code completion
+
+** Configuration (Advanced)
+
+- Packages are loaded and configured via [[https://www.gnu.org/software/emacs/manual/html_node/use-package/][use-package]] in ~init.el~
+- C++ project defaults are defined in ~ide-cpp.el~ and can be overridden in the ~(use-package ide-cpp.el)~ call at the end of ~init.el~
+- Auto-text blocks are defined as `yasnippet` templates in the ~snippets/~ directory

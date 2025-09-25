@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: core-cpp-includes
+# --
+#include <format>
+#include <string>
+
+#include "`(ide-cpp-get-version-header)`"
+
+$0

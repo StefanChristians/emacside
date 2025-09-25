@@ -1,0 +1,154 @@
+# -*- mode: snippet -*-
+# name: install
+# group: module
+# --
+include_guard(GLOBAL)
+
+# platform-dependent installation directories
+include(GNUInstallDirs)
+
+# macros for generating export config file
+include(CMakePackageConfigHelpers)
+
+# Set default install prefix to a relative staging directory if not defined
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "\$\{CMAKE_SOURCE_DIR\}/install" CACHE PATH "Install path prefix" FORCE)
+endif()
+
+# installs target under the project subdirectory in lib64/project/libtarget.a
+# target can then be imported with find_package(project COMPONENTS target)
+function(install_as_submodule_and_export target_name)
+
+  install(TARGETS \$\{target_name\}
+    EXPORT ${1:`(ide-common-get-project-machine-name)`}-targets
+    RUNTIME COMPONENT runtime
+    LIBRARY DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}/${1:`(ide-common-get-project-machine-name)`}" COMPONENT runtime
+    ARCHIVE DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}/${1:`(ide-common-get-project-machine-name)`}" COMPONENT devel
+  )
+
+endfunction()
+
+# installs target as top-level library in lib64/libtarget.a
+# target can then be imported with find_package(project COMPONENTS target)
+function(install_and_export target_name)
+
+  install(TARGETS \$\{target_name\}
+    EXPORT ${1:`(ide-common-get-project-machine-name)`}-targets
+    RUNTIME COMPONENT runtime
+    LIBRARY COMPONENT runtime
+    ARCHIVE COMPONENT devel
+  )
+
+endfunction()
+
+
+# installs target under the project subdirectory as lib64/project/libtarget.a
+# without making it available for find_package()
+function(install_as_submodule_without_exporting target_name)
+
+  install(TARGETS \$\{target_name\}
+    RUNTIME COMPONENT runtime
+    LIBRARY DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}/${1:`(ide-common-get-project-machine-name)`}" COMPONENT runtime
+    ARCHIVE DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}/${1:`(ide-common-get-project-machine-name)`}" COMPONENT devel
+  )
+
+endfunction()
+
+
+# installs target as top-level library in lib64/libtarget.a
+# without making it available for find_package()
+function(install_without_exporting target_name)
+
+  install(TARGETS \$\{target_name\}
+    RUNTIME COMPONENT runtime
+    LIBRARY COMPONENT runtime
+    ARCHIVE COMPONENT devel
+  )
+
+endfunction()
+
+
+# CPACK variables must be set after install() commands
+# but before include(CPack), so call this macro at the
+# end of the top-level CMakeLists.txt.
+macro(pack)
+  if(NOT CMAKE_PACKAGE_INCLUDE_CPack)
+
+  `(let* ((root (ide-common-get-project-root))
+          (readme (ide-common-first-file-match
+                    root
+                    ide-common-default-readme-file-base
+                    ide-common-available-text-file-extensions))
+          (license (ide-common-first-file-match
+                     root
+                     ide-common-default-license-file-base
+                     ide-common-available-license-file-extensions))
+          (lines (delq nil
+                       (list (when readme
+                               (format "  \"\$\{CMAKE_SOURCE_DIR\}/%s\"\n" readme))
+                             (when license
+                               (format "  \"\$\{CMAKE_SOURCE_DIR\}/%s\"\n" license))))))
+      (when lines
+        (concat "\n"
+                "# install README and LICENSE for both runtime and devel\n"
+                "install(FILES\n"
+                (apply #'concat lines)
+                "  TYPE DOC COMPONENT runtime\n"
+                ")\n"
+                "install(FILES\n"
+                (apply #'concat lines)
+                "  TYPE DOC COMPONENT devel\n"
+                ")\n")))`
+
+    # configure exports for use with find_package()
+    set(CONFIG_IN_FILE "\$\{CMAKE_CURRENT_SOURCE_DIR\}/cmake/export-config.cmake${2:`ide-cpp-default-cmake-dynamic-config-extension`}")
+    if(EXISTS "\$\{CONFIG_IN_FILE\}")
+
+      configure_package_config_file(
+        "\$\{CONFIG_IN_FILE\}"
+        "\$\{CMAKE_CURRENT_BINARY_DIR\}/${1:`(ide-common-get-project-machine-name)`}-config.cmake"
+        INSTALL_DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}/cmake/${1:`(ide-common-get-project-machine-name)`}"
+      )
+
+      write_basic_package_version_file(
+        "\$\{CMAKE_CURRENT_BINARY_DIR\}/${1:`(ide-common-get-project-machine-name)`}-config-version.cmake"
+        VERSION \$\{PROJECT_VERSION_MAJOR\}.\$\{PROJECT_VERSION_MINOR\}.\$\{PROJECT_VERSION_PATCH\}
+        COMPATIBILITY SameMajorVersion
+      )
+
+      install(FILES
+        "\$\{CMAKE_CURRENT_BINARY_DIR\}/${1:`(ide-common-get-project-machine-name)`}-config.cmake"
+        "\$\{CMAKE_CURRENT_BINARY_DIR\}/${1:`(ide-common-get-project-machine-name)`}-config-version.cmake"
+        DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}/cmake/${1:`(ide-common-get-project-machine-name)`}"
+        COMPONENT devel
+      )
+
+      install(EXPORT ${1:`(ide-common-get-project-machine-name)`}-targets
+        NAMESPACE ${1:`(ide-common-get-project-machine-name)`}::
+        DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}/cmake/${1:`(ide-common-get-project-machine-name)`}"
+        COMPONENT devel
+      )
+
+    endif()
+
+    # actual packing starts here
+    set(CPACK_PACKAGE_VERSION_MAJOR "\$\{PROJECT_VERSION_MAJOR\}")
+    set(CPACK_PACKAGE_VERSION_MINOR "\$\{PROJECT_VERSION_MINOR\}")
+    set(CPACK_PACKAGE_VERSION_PATCH "\$\{PROJECT_VERSION_PATCH\}")
+
+    set(CPACK_PACKAGE_VENDOR "\$\{PROJECT_VENDOR\}")
+    set(CPACK_PACKAGE_CONTACT "\$\{PROJECT_CONTACT\}")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "\$\{PROJECT_DESCRIPTION\}")
+
+    set(CPACK_COMPONENT_RUNTIME_DISPLAY_NAME "Runtime")
+    set(CPACK_COMPONENT_RUNTIME_DESCRIPTION  "Runtime files: executables, shared libraries, translation files, user documentation, etc.")
+    set(CPACK_COMPONENT_DEVEL_DISPLAY_NAME "Development Files")
+    set(CPACK_COMPONENT_DEVEL_DISPLAY_NAME "Development files: static libraries, public headers, CMake configuration, api documentation, etc.")
+
+    set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
+    set(CPACK_PACKAGE_DIRECTORY "${3:`ide-cpp-default-pack-directory`}")
+
+    include(CPack)
+
+  endif()
+endmacro()$0

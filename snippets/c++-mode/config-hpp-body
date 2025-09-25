@@ -1,0 +1,36 @@
+# -*- mode: snippet -*-
+# name: config-hpp-body
+# --
+/// Application Configuration
+///
+/// This class interfaces with the application's configuration, such as command
+/// line arguments and configuration files.
+class Config \{
+public:
+  /// Parse and cache command line arguments
+  ///
+  /// \\param argc number of command line arguments
+  /// \\param argv command line arguments
+  /// \\throws int exit code of CLI11 exception
+  void parseArguments(int argc, char *argv[]);
+
+  /// Get the verbosity of output messages
+  ///
+  /// Verbosity is calculated as the difference of counts
+  /// of verbose and quiet arguments.
+  /// The standard verbosity is 0.
+  /// Positive verbosity means output will be more detailed,
+  /// negative verbosity means output will be quieter.
+  ///
+  /// \\returns verbosity
+  int verbosity() const;
+
+private:
+  /// Number of times -v or --verbose was invoked
+  int verboseCount_\{0\};
+
+  /// Number of times -q or --quiet was invoked
+  int quietCount_\{0\};
+\};
+
+$0

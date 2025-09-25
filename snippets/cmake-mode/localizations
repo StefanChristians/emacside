@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: localizations
+# key: localizations
+# type: command
+# --
+(let ((locale-files (ide-cpp-list-localization-files))
+      (domain (ide-cpp-project-or-submodule-name)))
+  (when locale-files
+    (insert "# localization\n")
+    (ide-cpp-insert-cmake-locales domain locale-files)
+    (insert "\ndo_if_exists(generate_translations)\n")))

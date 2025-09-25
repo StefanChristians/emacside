@@ -1,0 +1,17 @@
+# -*- mode: snippet -*-
+# name: dependencies
+# key: dependencies
+# type: command
+# --
+(let ((source-files (ide-cpp-list-source-files))
+      (target (ide-cpp-get-cmake-target)))
+  (when source-files
+    (cond
+     ;; application
+     ;; ===========
+     ((ide-cpp-has-main-sibling)
+      (insert "# dependencies\n")
+      (insert (format "target_link_library_if_exists(%s CLI11::CLI11)\n" target))
+      (insert (format "target_link_library_if_exists(%s Boost::locale)\n" target))
+      (insert (format "target_link_library_if_exists(%s Boost::dll)\n" target))
+      (insert "\n")))))

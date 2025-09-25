@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: main-cpp-body
+# --
+int main(int argc, char *argv[]) {
+  return `(ide-cpp-namespace)`::run(argc, argv);$0
+}

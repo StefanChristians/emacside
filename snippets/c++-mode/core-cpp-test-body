@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: core-cpp-test-body
+# --
+TEST_F(`(ide-cpp-project-or-submodule-class)`Tests, about_Should_ContainProjectName) {
+  EXPECT_THAT(testObject.about(), testing::HasSubstr(version::ProjectName));
+}
+
+TEST_F(`(ide-cpp-project-or-submodule-class)`Tests, about_Should_ContainProjectVersion) {
+  EXPECT_THAT(testObject.about(), testing::HasSubstr(version::VersionString));
+}
+
+$0

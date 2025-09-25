@@ -1,0 +1,77 @@
+# -*- mode: snippet -*-
+# name: config-cpp-test-body
+# --
+TEST_F(ConfigTests,
+       parseArguments_Should_notThrowException_When_calledWithNullArguments) \{
+  EXPECT_NO_THROW(testObject.parseArguments(0, nullptr));
+\}
+
+TEST_F(ConfigTests,
+       parseArguments_Should_notThrowException_When_calledWithNullPointer) \{
+  EXPECT_NO_THROW(testObject.parseArguments(1, nullptr));
+\}
+
+TEST_F(ConfigTests,
+       parseArguments_Should_notThrowExcpetion_When_calledWithSingleArgument) \{
+  int argc = 1;
+  char *argv[] = \{(char *)"program_name"\};
+  EXPECT_NO_THROW(testObject.parseArguments(argc, argv));
+\}
+
+TEST_F(
+    ConfigTests,
+    parseArguments_Should_throwNonZeroExcpetion_When_calledWithUnkownArgument) \{
+  int argc = 2;
+  char *argv[] = \{(char *)"program_name", (char *)"--unkown-argument"\};
+  try \{
+    testObject.parseArguments(argc, argv);
+    FAIL() << "No exception thrown.";
+  \} catch (int e) \{
+    EXPECT_NE(0, e);
+  \} catch (...) \{
+    FAIL() << "Unexpected exception thrown.";
+  \}
+\}
+
+TEST_F(ConfigTests,
+       parseArguments_Should_throwZeroExcpetion_When_calledForHelp) \{
+  int argc = 2;
+  char *argv[] = \{(char *)"program_name", (char *)"--help"\};
+  try \{
+    testObject.parseArguments(argc, argv);
+    FAIL() << "No exception thrown.";
+  \} catch (int e) \{
+    EXPECT_EQ(0, e);
+  \} catch (...) \{
+    FAIL() << "Unexpected exception thrown.";
+  \}
+\}
+
+TEST_F(ConfigTests,
+       parseArguments_Should_throwZeroExcpetion_When_calledForVersion) \{
+  int argc = 2;
+  char *argv[] = \{(char *)"program_name", (char *)"--version"\};
+  try \{
+    testObject.parseArguments(argc, argv);
+    FAIL() << "No exception thrown.";
+  \} catch (int e) \{
+    EXPECT_EQ(0, e);
+  \} catch (...) \{
+    FAIL() << "Unexpected exception thrown.";
+  \}
+\}
+
+TEST_F(ConfigTests, verbosity_Should_returnZero_When_noArgumentsParsed) \{
+  EXPECT_EQ(0, testObject.verbosity());
+\}
+
+TEST_F(ConfigTests,
+       verbosity_Should_accumualte_When_calledWithVerboseAndQuiet) \{
+  int argc = 3;
+  char *argv[] = \{(char *)"program_name", (char *)"-vvv", (char *)"-qqqqq"\};
+  testObject.parseArguments(argc, argv);
+  /// verbosity = +3verbose -5quiet = -2
+  EXPECT_EQ(-2, testObject.verbosity());
+\}
+
+$0

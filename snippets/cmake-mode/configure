@@ -1,0 +1,19 @@
+# -*- mode: snippet -*-
+# name: configure
+# key: config
+# type: command
+# --
+(let ((files (ide-cpp-list-cmake-dynamic-configuration-files)))
+  (when files
+    (insert "# configure\n")
+    (loop-for-each file files
+      (let* ((case-fold-search t) ;; enable case-insensitive regex
+             (is-version-file
+              (cl-some (lambda (re) (string-match-p re file))
+                       (ide-cpp-version-source-file-candidates))))
+        (insert (format "%s(%s%s %s)\n"
+                        (if is-version-file "configure_version_file" "configure_file")
+                        file
+                        ide-cpp-default-cmake-dynamic-config-extension
+                        file))))
+    (insert "\n")))

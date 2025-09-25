@@ -1,0 +1,14 @@
+# -*- mode: snippet -*-
+# name: readme-cpp-libraries-noboost
+# key: readme-cpp-libraries-noboost
+# --
+* Third-Party Libraries
+
+This software uses the following third-party libraries:
+
+- **CLI11**
+  - command line parser for C++11
+  - [[https://github.com/CLIUtils/CLI11][CLI11 github repository]]
+  - [[https://github.com/CLIUtils/CLI11?tab=License-1-ov-file#readme][CLI11 License]]
+
+$0

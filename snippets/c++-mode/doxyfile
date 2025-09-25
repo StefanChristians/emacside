@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: doxyfile
+# key: doxyfile
+# --
+/// \file
+`(ide-cpp-doxygen-file-type-comment)`
+$0

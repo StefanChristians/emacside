@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: environment-hpp-includes
+# --
+#include <locale>
+#include <memory>
+#include <string>
+
+$0

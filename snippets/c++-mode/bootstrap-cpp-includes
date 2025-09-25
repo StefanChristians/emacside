@@ -1,0 +1,14 @@
+# -*- mode: snippet -*-
+# name: bootstrap-cpp-includes
+# --
+#include <iostream>
+#include <memory>
+
+`(when (ide-cpp-has-environment-sibling) (insert "#include \"boost/locale.hpp\"\n"))`
+
+#include "`(ide-cpp-get-project-header)`"
+
+#include "config.hpp"
+`(when (ide-cpp-has-environment-sibling) (insert "#include \"environment.hpp\"\n"))`
+
+$0

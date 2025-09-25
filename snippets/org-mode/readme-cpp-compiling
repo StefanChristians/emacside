@@ -1,0 +1,164 @@
+# -*- mode: snippet -*-
+# name: readme-cpp-compiling
+# key: readme-cpp-compiling
+# --
+* Compiling
+
+** Build System
+
+*** Compiler Selection
+
+CMake will choose the system's default compiler at the time of build system configuration.
+
+You can use your favorite C++ compiler instead by setting the ~CXX~ environment variable:
+
+#+BEGIN_SRC sh
+\$ export CXX="/usr/bin/clang++"
+\$ cmake -B path/to/output/directory
+#+END_SRC
+
+Alternatively, you can explicitly pass the ~CMAKE_CXX_COMPILER~ variable as command line argument:
+
+#+BEGIN_SRC sh
+\$ cmake -D CMAKE_CXX_COMPILER="/usr/bin/g++" -B path/to/output/directory
+#+END_SRC
+
+Once the build system has been configured, the compiler can not be changed anymore.
+To change the compiler later, delete the output directory and re-run ~cmake -B~ for a clean build.
+
+*** Generator Selection
+
+CMake will generate the system's default build system at the time of its configuration.
+
+You can use your favorite generator suite instead by setting the ~CMAKE_GENERATOR~ environment variable:
+
+#+BEGIN_SRC sh
+\$ export CMAKE_GENERATOR="Ninja Multi-config"
+\$ cmake -B path/to/output/directory
+#+END_SRC
+
+Alternatively, you can override the generator with the ~-G~ command line option:
+
+#+BEGIN_SRC sh
+\$ cmake -G "Unix Makefiles" -B path/to/output/directory
+#+END_SRC
+
+Once the build system has been configured, the generator can not be changed anymore.
+To change the generator later, delete the output directory and re-run ~cmake -B~ for a clean build.
+
+*** Build Type
+
+This software can be built as release or debug build type.
+Debug build types preserve source line numbers for easy determination of exactly where in the source code an error occurred.
+Release build types are optimized for efficiency and stripped of source symbols.
+
+When no build type is specified, a release is built.
+
+How the build type is specified depends on the type of generator being used:
+
+**** With Single-Configuration Generators
+
+In case of single-configuration generators, the build type is set in the configuration phase before the build system is generated.
+
+The build type is passed with the ~CMAKE_BUILD_TYPE~ variable as command line argument:
+
+#+BEGIN_SRC sh
+\$ cmake -D CMAKE_BUILD_TYPE=[Debug|Release] -B path/to/output/directory
+#+END_SRC
+
+As the build type can not be changed once the build system has been configured, it is recommended to use separate output directories for different build types, thus avoiding the need of constantly having to delete and re-configure the build system.
+
+**** With Multi-Configuration Generators
+
+In case of multi-configuration generators, the build type is set in the building stage at compile time.
+
+The build type is passed with the ~--config~ command line option:
+
+#+BEGIN_SRC sh
+\$ cmake --build path/to/output/directory --config [Debug|Release]
+#+END_SRC
+
+*** Cross-Compiling
+
+This software includes a Python script to facilitate cross-compiling.
+
+It uses toolchain definitions which are located in the directory pointed to by the ~TOOLCHAIN_ROOT~ environment variable.
+
+For more information, run
+
+#+BEGIN_SRC sh
+\$ ./tools/xcompile -h
+#+END_SRC
+
+*** Build Dependencies
+
+Use the ~CMAKE_FETCHCONTENT_DOWNLOAD_DIR~ command line argument or environment variable to specify a location into which to persistently download dependencies:
+
+#+BEGIN_SRC sh
+\$ cmake -D CMAKE_FETCHCONTENT_DOWNLOAD_DIR:STRING="path/to/download/directory" -B path/to/output/directory
+#+END_SRC
+
+This allows dependencies to be re-used across configurations and projects without the need to download them repeatedly.
+
+** Testing
+
+This software uses [[https://google.github.io/googletest/][GoogleTest]] as testing framework.
+
+For running unit tests, execute ~ctest~ after compiling:
+
+#+BEGIN_SRC sh
+\$ cmake --build path/to/output/directory
+\$ ctest --test-dir path/to/output/directory
+#+END_SRC
+
+** Static Checks
+
+If available, following static checks are performed on the source code as part of the build process to avoid common bugs and vulnerabilities:
+
+[[https://clang.llvm.org/docs/ClangFormat.html][clang-format]] Enforces formatting rules.
+
+[[https:clang.llvm.org/extra/clang-tidy/][clang-tidy]] Fixes typical programming errors.
+
+[[https:cppcheck.sourceforge.io][cppcheck]] Detects undefined behavior and dangerous coding constructs.
+
+** Dynamic Analysis
+
+*** Test Coverage
+
+To verify the extent to which all code is covered by unit tests, build the ~-t coverage~ target:
+
+#+BEGIN_SRC sh
+\$ cmake --build path/to/output/directory -t coverage
+#+END_SRC
+
+As meaningful coverage reports require precise source line numbers, this target is only available for Debug build types.
+
+The coverage report will be stored in the ~output/reports~ subdirectory of the build path.
+
+#+BEGIN_VERSE
+*Note:*
+Source files whose base name ends on ~_interface~ or ~_thin_wrapper~ are excluded from coverage reports.
+#+END_VERSE
+
+#+BEGIN_VERSE
+*Note:*
+[[https://llvm.org/docs/CommandGuide/llvm-cov.html][llvm-cov]] and [[https://llvm.org/docs/CommandGuide/llvm-profdata.html][llvm-profdata]] are required for generating coverage reports with clang.
+[[https://gcc.gnu.org/onlinedocs/gcc/Gcov.html][gcov]] and [[https://github.com/gcovr/gcovr][gcovr]] are required for generating coverage reports with  gcc.
+#+END_VERSE
+
+*** Memory Leaks
+
+Use the ~-t valgrind~ target to check the running application for memory leaks:
+
+#+BEGIN_SRC sh
+\$ cmake --build path/to/output/directory -t valgrind
+#+END_SRC
+
+The Valgrind memcheck report will be stored in the ~output/reports~ subdirectory of the build path.
+
+#+BEGIN_VERSE
+*Note:*
+[[https://valgrind.org][Valgrind]] is required for checking memory leaks.
+#+END_VERSE
+
+$0

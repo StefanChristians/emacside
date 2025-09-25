@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: core-hpp-includes
+# --
+#include <string>
+
+$0

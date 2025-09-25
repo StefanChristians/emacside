@@ -1,0 +1,16 @@
+# -*- mode: snippet -*-
+# name: environment-cpp-includes
+# --
+#include <filesystem>
+#include <format>
+#include <iostream>
+#include <locale>
+#include <memory>
+#include <string>
+
+#include "boost/dll.hpp"
+#include "boost/locale.hpp"
+
+#include "`(ide-cpp-get-version-header)`"
+
+$0

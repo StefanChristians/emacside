@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: main-cpp-includes
+# --
+#include "bootstrap.hpp"
+
+$0

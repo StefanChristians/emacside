@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: spdx
+# key: spdx
+# --
+// Copyright (C) `(format-time-string "%Y")` `user-full-name`
+// SPDX-License-Identifier: `(ide-common-dominating-spdx-id)`
+
+$0

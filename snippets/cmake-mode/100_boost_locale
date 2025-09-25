@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: boost_locale
+# group: module
+# --
+include_guard(GLOBAL)
+
+# high quality localization facilities
+
+find_package(Boost REQUIRED COMPONENTS locale)

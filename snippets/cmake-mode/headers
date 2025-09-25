@@ -1,0 +1,53 @@
+# -*- mode: snippet -*-
+# name: headers
+# key: headers
+# type: command
+# --
+(let ((source-files (ide-cpp-list-source-files))
+      (has-dynamic-headers (ide-cpp-has-dynamic-headers))
+      (target (ide-cpp-get-cmake-target)))
+  (when (and source-files (not (ide-cpp-is-test)))
+    (insert "# headers\n")
+    (cond
+     ;; application
+     ;; ===========
+     ((ide-cpp-has-main-sibling)
+      (insert (format "target_include_directories(%s\n" target))
+      (insert "  PRIVATE \"\$\{CMAKE_CURRENT_SOURCE_DIR\}\"\n")
+      (when has-dynamic-headers
+        (insert "  PRIVATE \$\{CMAKE_CURRENT_BINARY_DIR\}"))
+      (unless (ide-cpp-application-libraries)
+        (loop-for-each pubdir (ide-cpp-public-header-dirs)
+          (let ((reldir (ide-common-relative-path pubdir)))
+            (insert (format "  PUBLIC \"\$<BUILD_INTERFACE:\$\{CMAKE_SOURCE_DIR\}/%s>\" \"\$<INSTALL_INTERFACE:\$\{CMAKE_INSTALL_INCLUDEDIR\}>\"\n" reldir)))))
+      (insert ")\n")
+      (insert "\n")
+      (insert (format "add_library(%s_test_headers INTERFACE)\n" target))
+      (insert (format "target_include_directories(%s_test_headers\n" target))
+      (insert "  INTERFACE \"\$\{CMAKE_CURRENT_SOURCE_DIR\}\"\n")
+      (when has-dynamic-headers
+        (insert "  INTERFACE \$\{CMAKE_CURRENT_BINARY_DIR\}"))
+      (insert ")\n"))
+
+     ;; static library
+     ;; ==============
+     (t
+      (insert (format "target_include_directories(%s\n" target))
+      (insert "  PRIVATE \"\$\{CMAKE_CURRENT_SOURCE_DIR\}\"\n")
+      (setq header-dirs nil)
+      (loop-for-each pubdir (ide-cpp-public-header-dirs)
+        (let* ((reldir (ide-common-relative-path pubdir))
+               (path (format "\$\{CMAKE_SOURCE_DIR\}/%s" reldir)))
+          (push path header-dirs)
+          (insert (format "  PUBLIC \"\$<BUILD_INTERFACE:%s>\" \"\$<INSTALL_INTERFACE:\$\{CMAKE_INSTALL_INCLUDEDIR\}>\"\n" path))))
+      (when has-dynamic-headers
+        (insert "  PRIVATE \"\$\{CMAKE_CURRENT_BINARY_DIR\}\"\n"))
+      (insert ")\n")
+      (insert "\n")
+      (insert (format "add_library(%s_test_headers INTERFACE)\n" target))
+      (insert (format "target_include_directories(%s_test_headers\n" target))
+      (insert "  INTERFACE \"\$\{CMAKE_CURRENT_SOURCE_DIR\}\"\n")
+      (when has-dynamic-headers
+        (insert "  INTERFACE \$\{CMAKE_CURRENT_BINARY_DIR\}"))
+      (insert ")\n")))
+    (insert "\n")))

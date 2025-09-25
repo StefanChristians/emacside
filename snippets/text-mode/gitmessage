@@ -1,0 +1,15 @@
+# -*- mode: snippet -*-
+# name: gitmessage
+# key: gitmessage
+# --
+$0
+# <type>[(<scope>)][!]: <description>
+#
+# <type>:
+#    feat, fix, chore
+#    docs, test, build, ci
+#    style, refactor, perf
+#    revert
+#
+# <footer>:
+#   [BREAKING CHANGE: <description>]

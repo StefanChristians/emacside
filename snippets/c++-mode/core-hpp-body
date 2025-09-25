@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: core-hpp-body
+# --
+/// Main `(ide-cpp-project-or-submodule-human)` class
+class `(ide-cpp-project-or-submodule-class)` {
+public:
+  /// Get information about this project
+  /// \\returns Project name and version
+  const std::string about() const;
+};
+$0

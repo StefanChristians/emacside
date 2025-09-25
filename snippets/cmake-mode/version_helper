@@ -1,0 +1,58 @@
+# -*- mode: snippet -*-
+# name: version_helper
+# group: script
+# --
+# version_helper.cmake
+# Usage:
+#   cmake -DINPUT=/path/to/version.cpp.in \\
+#         -DOUTPUT=/path/to/version.cpp \\
+#         -DPROJECT_VERSION_FILE=/path/to/VERSION \\
+#         -DPROJECT_NAME="MyProject" \\
+#         -DPROJECT_DESCRIPTION="Example project" \\
+#         -P version_helper.cmake
+
+# -------------------------------------------------------------------
+# fallback values
+set(PROJECT_VERSION_MAJOR 0)
+set(PROJECT_VERSION_MINOR 0)
+set(PROJECT_VERSION_PATCH 0)
+set(PROJECT_VERSION "0.0.0")
+set(PROJECT_VERSION_FULL "0.0.0-fallback")
+
+# -------------------------------------------------------------------
+# read version from file if it exists
+if(PROJECT_VERSION_FILE AND EXISTS "\$\{PROJECT_VERSION_FILE\}")
+    file(READ "\$\{PROJECT_VERSION_FILE\}" VERSION_STRING)
+    string(STRIP "\$\{VERSION_STRING\}" VERSION_STRING)
+    string(REGEX MATCH "^([0-9]+)\\\\.([0-9]+)\\\\.([0-9]+)" VERSION_CLEAN "\$\{VERSION_STRING\}")
+    if(VERSION_CLEAN)
+        set(PROJECT_VERSION_MAJOR "\$\{CMAKE_MATCH_1\}")
+        set(PROJECT_VERSION_MINOR "\$\{CMAKE_MATCH_2\}")
+        set(PROJECT_VERSION_PATCH "\$\{CMAKE_MATCH_3\}")
+        set(PROJECT_VERSION "\$\{VERSION_CLEAN\}")
+        set(PROJECT_VERSION_FULL "\$\{VERSION_STRING\}")
+    endif()
+endif()
+
+# -------------------------------------------------------------------
+# read input file
+file(READ "\$\{INPUT\}" content)
+
+# -------------------------------------------------------------------
+# replace placeholders of the form @VAR@
+string(REGEX MATCHALL "@([A-Za-z0-9_]+)@" placeholders "\$\{content\}")
+foreach(ph IN LISTS placeholders)
+    string(REGEX REPLACE "@([A-Za-z0-9_]+)@" "\\\\1" varname "\$\{ph\}")
+    if(DEFINED \$\{varname\})
+        set(value "\$\{\$\{varname\}\}")
+        # remove backslash only when it precedes whitespace
+        string(REGEX REPLACE "\\\\\\\\([ \\t])" "\\\\1" value "\$\{value\}")
+        string(REPLACE "\$\{ph\}" "\$\{value\}" content "\$\{content\}")
+    endif()
+endforeach()
+
+# -------------------------------------------------------------------
+# write output file
+file(WRITE "\$\{OUTPUT\}" "\$\{content\}")
+
+message(STATUS "Updated \$\{OUTPUT\} from VERSION file")

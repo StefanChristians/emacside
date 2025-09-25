@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: boost_dll
+# group: module
+# --
+include_guard(GLOBAL)
+
+# comfortable work with DLL and DSO
+
+find_package(Boost REQUIRED COMPONENTS dll)

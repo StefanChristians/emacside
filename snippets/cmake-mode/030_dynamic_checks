@@ -1,0 +1,64 @@
+# -*- mode: snippet -*-
+# name: dynamic_checks
+# group: module
+# --
+include_guard(GLOBAL)
+
+# dynamic program analysis
+
+# default location for generated valgrind reports
+set(CMAKE_MEMCHECK_OUTPUT_DIR "output/reports/memcheck" CACHE STRING "Output directory in build tree for generated memory leakage reports.")
+
+# load binaries
+find_program(VALGRIND_EXECUTABLE valgrind)
+
+mark_as_advanced(
+  VALGRIND_EXECUTABLE
+)
+
+if (VALGRIND_EXECUTABLE)
+  execute_process(
+    COMMAND \$\{VALGRIND_EXECUTABLE\} --version OUTPUT_VARIABLE VALGRIND_VERSION
+  )
+  string(REGEX REPLACE "valgrind-(.*)\\n\$" "\\\\1" VALGRIND_VERSION "\$\{VALGRIND_VERSION\}")
+  message(STATUS "Found valgrind: \$\{VALGRIND_EXECUTABLE\} (found version \\"\$\{VALGRIND_VERSION\}\\")")
+  set(VALGRIND_FOUND True)
+else()
+  message(STATUS "valgrind not found - dynamic checking disabled")
+  set(VALGRIND_FOUND False)
+  add_custom_target(valgrind COMMAND true COMMENT "Valgrind not found - nothing to do")
+endif()
+
+# download memcheck-cover valgrind reporter
+if(VALGRIND_FOUND)
+  FetchContent_Declare_Persist(
+    memcheck-cover
+    GIT_REPOSITORY "https://github.com/Farigh/memcheck-cover.git"
+    GIT_TAG "latest"
+    GIT_PROGRESS ON
+    GIT_SHALLOW ON
+  )
+  FetchContent_MakeAvailable(memcheck-cover)
+  set(MEMCHECK_PATH \$\{memcheck-cover_SOURCE_DIR\}/bin)
+  add_custom_target(valgrind
+    COMMENT "Running valgrind"
+    COMMAND "\$\{MEMCHECK_PATH\}/generate_html_report.sh"
+    -i "\$\{CMAKE_BINARY_DIR\}/\$\{CMAKE_MEMCHECK_OUTPUT_DIR\}"
+    -o "\$\{CMAKE_BINARY_DIR\}/\$\{CMAKE_MEMCHECK_OUTPUT_DIR\}"
+    WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
+  )
+endif()
+
+# add dynamic checker to target
+function(dynamic_checks target)
+  if(VALGRIND_FOUND)
+    add_custom_target(
+      "valgrind_\$\{target\}"
+      COMMAND "\$\{MEMCHECK_PATH\}/memcheck_runner.sh"
+      -o "\$\{CMAKE_BINARY_DIR\}/\$\{CMAKE_MEMCHECK_OUTPUT_DIR\}/data/\$\{target\}"
+      -- \$<TARGET_FILE:\$\{target\}>
+      WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
+    )
+    add_dependencies(valgrind "valgrind_\$\{target\}")
+  endif()
+endfunction()

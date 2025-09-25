@@ -1,0 +1,51 @@
+# -*- mode: snippet -*-
+# name: readme-cpp-installing
+# key: readme-cpp-installing
+# --
+* Installing and Packaging
+
+** Installing from Source
+
+Compiled targets can be installed using ~cmake --install~.
+
+Two installation components are available:
+- ~--component=runtime~ :: installs executables, shared libraries, translation files, user documentation, etc.
+- ~--component=devel~ :: installs static libraries, public headers, CMake configuration, api documentation, etc.
+
+Example:
+#+BEGIN_SRC sh
+\$ cmake --install path/to/output/directory --component=devel
+#+END_SRC
+
+If no component is specified, both are installed.
+
+By default, the targets are installed in the ~${1:`ide-cpp-default-install-directory`}~ staging directory under the project root directory.
+To install in another location, specify the installation root using the ~--prefix=~ option.
+For example, to install directly into the system, specify the system's root directory:
+
+#+BEGIN_SRC sh
+\$ cmake --install path/to/output/directory --component=devel --prefix=/
+#+END_SRC
+
+#+BEGIN_VERSE
+*Note:*
+Root privileges are required to perform system installations.
+#+END_VERSE
+
+** Packaging Binary Distributions
+
+Binary distribution packages are created using the ~cpack~ command.
+To run ~cpack~ from the project root directory, point the ~--config~ option to the ~CPackConfig.cmake~ file in the build tree:
+
+#+BEGIN_SRC sh
+\$ cpack --config path/to/output/directory/CPackConfig.cmake
+#+END_SRC
+
+This generates binary distribution packages in the ~${2:`ide-cpp-default-pack-directory`}~ subdirectory under the current working directory.
+To create the packages in a different location, pass the path to the packaging directory with the ~-B~ option:
+
+#+BEGIN_SRC sh
+\$ cpack --config path/to/output/directory/CPackConfig.cmake -B path/to/packaging/directory
+#+END_SRC
+
+$0

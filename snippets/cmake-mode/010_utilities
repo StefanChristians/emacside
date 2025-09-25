@@ -1,0 +1,41 @@
+# -*- mode: snippet -*-
+# name: utilities
+# group: module
+# --
+include_guard(GLOBAL)
+
+# utility macros to reduce clutter and improve readability
+
+# call a function or macro only if it has been defined
+macro(do_if_exists command_name)
+  if(COMMAND \$\{command_name\})
+    if (NOT "" STREQUAL "\$\{ARGN\}")
+      message(VERBOSE "Calling \$\{command_name\} with arguments \$\{ARGN\}")
+    else()
+      message(VERBOSE "Calling \$\{command_name\} without arguments")
+    endif()
+    cmake_language(CALL \$\{command_name\} \$\{ARGN\})
+  else()
+    message(VERBOSE "Skipping \$\{command_name\}.")
+  endif()
+endmacro()
+
+# add a library only if it has been defined
+macro(target_link_library_if_exists target_name dependency_name)
+  if(TARGET \$\{dependency_name\})
+    message(VERBOSE "Adding library \$\{dependency_name\} to target \$\{target_name\}.")
+    target_link_libraries(\$\{target_name\} PRIVATE \$\{dependency_name\})
+  else()
+    message(VERBOSE "Skipping library \$\{dependency_name\} for target \$\{target_name\}.")
+  endif()
+endmacro()
+
+# add a dependency only if it has been defined
+macro(add_dependency_if_exists target_name dependency_name)
+  if(TARGET \$\{dependency_name\})
+    message(VERBOSE "Adding dependency \$\{dependency_name\} to target \$\{target_name\}.")
+    add_dependencies(\$\{target_name\} \$\{dependency_name\})
+  else()
+    message(VERBOSE "Skipping dependency \$\{dependency_name\} for target \$\{target_name\}.")
+  endif()
+endmacro()

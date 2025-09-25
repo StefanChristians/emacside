@@ -1,0 +1,56 @@
+# -*- mode: snippet -*-
+# name: environment-cpp-body
+# --
+void Environment::locale(const std::string &id) \{
+
+  // create locale generator
+  boost::locale::generator localeGenerator;
+
+  // location of translation dictionaries
+  localeGenerator.add_messages_path("/usr/local/share/locale");
+  localeGenerator.add_messages_path("/usr/share/locale");
+  localeGenerator.add_messages_path(".");
+  localeGenerator.add_messages_path("./locale");
+  std::filesystem::path p(executablePath());
+  localeGenerator.add_messages_path(p);
+  p /= "locale";
+  localeGenerator.add_messages_path(p);
+#ifdef DEV_LOCALE_PATH
+  localeGenerator.add_messages_path(DEV_LOCALE_PATH);
+#endif
+
+  // set translation domain
+  localeGenerator.add_messages_domain(version::Domain);
+
+  // generate locale
+  localeName_ = useDefaultUTF8LocaleEncoding(id);
+  locale_ = localeGenerator.generate(localeName_);
+
+  // set locale globally
+  std::locale::global(locale_);
+  std::cout.imbue(locale_);
+\}
+
+const std::string Environment::locale() const \{
+  if (std::empty(localeName_)) \{
+    // fall back to user default locale
+    return std::locale("").name();
+  \}
+  // return locale which was explicitly set
+  return localeName_;
+\}
+
+const std::string Environment::executablePath() const \{
+  return boost::dll::program_location().parent_path().string();
+\}
+
+const std::string
+Environment::useDefaultUTF8LocaleEncoding(const std::string &id) const \{
+  if (!std::empty(id) && id.find('.') == std::string::npos) \{
+    // no encoding specified in locale ID, default to UTF-8
+    return format("\{\}.UTF-8", id);
+  \}
+  return id;
+\}
+
+$0

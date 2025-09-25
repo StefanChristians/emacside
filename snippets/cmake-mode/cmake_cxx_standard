@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: cmake_cxx_standard
+# key: cxxstd
+# --
+set(CMAKE_CXX_STANDARD ${1:20})
+set(CMAKE_CXX_STANDARD_REQUIRED ${2:ON})
+set(CMAKE_CXX_EXTENSIONS ${3:OFF})
+$0

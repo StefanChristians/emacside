@@ -1,0 +1,65 @@
+# -*- mode: snippet -*-
+# name: readme-cpp-bumping
+# key: readme-cpp-bumping
+# --
+** Conventional Commits
+
+This software enforces [[https://www.conventionalcommits.org/][Conventional Commits]], meaning commit messages start with a type specificier indicating what kind of changes were made.
+Doing so provides consistency and clarity in the commit history, making it easier for humans to unserstand the nature and impact of changes and enabling automatic parsing of commit logs.
+
+Following types are allowed:
+| ~feat~      | new feature
+| ~fix~       | bug fix
+| ~docs~      | documentation only
+| ~style~     | formatting, missing semicolons, etc.
+| ~refactor~  | code change without new feature or fix
+| ~perf~      | performance improvement
+| ~test~      | adding/correcting tests
+| ~build~     | build system, dependencies
+| ~ci~        | CI config, scripts
+| ~chore~     | maintenance tasks
+| ~revert~    | revert a previous commit
+
+Optionally, the message body my contain a footer starting with ~BREAKING CHANGE~.
+
+** Semantic Versioning
+
+Release version numbers follow [[https://semver.org/][Semantic Versioning]] guidelines.
+The version number is a triplet of ~<Major>.<Minor>.<Patch>~.
+
+An increase in one of the components implies following meanings:
+| ~<Major>~ | Changes breaking backward compatibility have been introduced
+| ~<Minor>~ | New functionality has been added
+| ~<Patch>~ | Bugs have been fixed
+
+** Bumping Version Numbers
+
+A Python script is provided to conveniently bump version numbers.
+The script parses messages in the commit log and increases the patch level if it finds entries starting with ~fix:~, the minor version if it finds entries starting with ~feat:~, and the major version if it finds any ~BREAKING CHANGE~ in a message footer.
+
+To retrieve information on the current and next version numbers, run
+#+BEGIN_SRC sh
+\$ ./tools/bump --info
+#+END_SRC
+
+To bump the version number, run
+#+BEGIN_SRC sh
+\$ ./tools/bump --auto
+#+END_SRC
+
+#+BEGIN_VERSE
+*Note:*
+The version number can only be bumped in the ~main~ branch.
+#+END_VERSE
+
+To override which component is bumped, you specify the ~--major~, ~--minor~, or ~--patch~ options, for example:
+#+BEGIN_SRC sh
+\$ ./tools/bump --major
+#+END_SRC
+
+For other options and more details, run
+#+BEGIN_SRC sh
+\$ ./tools/bump --help
+#+END_SRC
+
+$0

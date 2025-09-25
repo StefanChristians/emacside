@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: namespace
+# key: namesp
+# --
+namespace ${1:`(ide-cpp-namespace)`} \{
+
+$0
+\} // namespace $1

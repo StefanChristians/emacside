@@ -1,0 +1,30 @@
+# -*- mode: snippet -*-
+# name: readme-cpp-localization
+# key: readme-cpp-localization
+# --
+* Localization
+
+This software uses boost::locale for localization.
+
+A Python script is provided to generate a localization template, extract translatable strings from the source code, and update portable object (.po) translation dictionaries.
+
+For example, to create or update a German dictionary, run
+
+#+BEGIN_SRC sh
+\$ ./tools/i18ngen --locale de_DE
+#+END_SRC
+
+The resulting ~de_DE.po~ file can then be edited to add or change German translations.
+
+For more information, run
+
+#+BEGIN_SRC sh
+\$ ./tools/i18ngen -h
+#+END_SRC
+
+#+BEGIN_VERSE
+*Note:*
+[[https://www.gnu.org/software/gettext/][GNU gettext utilities]] are required for generating localized dictionaries.
+#+END_VERSE
+
+$0

@@ -1,0 +1,61 @@
+# -*- mode: snippet -*-
+# name: static_checks
+# group: module
+# --
+include_guard(GLOBAL)
+
+# static program analysis
+
+# binaries for static checkers
+find_program(CLANGTIDY_EXECUTABLE clang-tidy)
+find_program(CPPCHECK_EXECUTABLE cppcheck)
+
+# report binaries found
+if (CLANGTIDY_EXECUTABLE)
+  execute_process(
+    COMMAND \$\{CLANGTIDY_EXECUTABLE\} --version OUTPUT_VARIABLE CLANGTIDY_VERSION
+  )
+  string(REGEX REPLACE ".*version ([^ ]+)\\n.*" "\\\\1" CLANGTIDY_VERSION "\$\{CLANGTIDY_VERSION\}")
+  message(STATUS "Found clang-tidy: \$\{CLANGTIDY_EXECUTABLE\} (found version \\"\$\{CLANGTIDY_VERSION\}\\")")
+  set(CLANGTIDY_FOUND True)
+else()
+  message(STATUS "clang-tidy not found - clang-tidy static checking disabled")
+  set(CLANGTIDY_FOUND False)
+endif()
+
+if (CPPCHECK_EXECUTABLE)
+  execute_process(
+    COMMAND \$\{CPPCHECK_EXECUTABLE\} --version OUTPUT_VARIABLE CPPCHECK_VERSION
+  )
+  string(REGEX REPLACE "^Cppcheck ([^ ]+)\\n.*" "\\\\1" CPPCHECK_VERSION "\$\{CPPCHECK_VERSION\}")
+  message(STATUS "Found cppcheck: \$\{CPPCHECK_EXECUTABLE\} (found version \\"\$\{CPPCHECK_VERSION\}\\")")
+  set(CPPCHECK_FOUND True)
+else()
+  message(STATUS "cppcheck not found - cppcheck static checking disabled")
+  set(CPPCHECK_FOUND False)
+endif()
+
+# add static checkers to target
+function(static_checks target)
+  if(CLANGTIDY_FOUND)
+    # use "--checks=*" for all checks
+    set(command "\$\{CLANGTIDY_EXECUTABLE\};--warnings-as-errors=*;--fix;--fix-errors;--fix-notes;--format-style=file;-header-filter='^\$\{CMAKE_SOURCE_DIR\}/.*'")
+    set_target_properties(
+      \$\{target\}
+      PROPERTIES
+      C_CLANG_TIDY "\$\{command\}"
+      CXX_CLANG_TIDY "\$\{command\}"
+    )
+  endif()
+
+  if(CPPCHECK_FOUND)
+    # use "--enable=all" for all checks
+    set(command "\$\{CPPCHECK_EXECUTABLE\};--check-level=exhaustive;--enable=style;--suppress=*:*Boost/*;--suppress=*:*cli11/*;--suppress=missingIncludeSystem;--error-exitcode=10")
+    set_target_properties(
+      \$\{target\}
+      PROPERTIES
+      CXX_CPPCHECK "\$\{command\}"
+    )
+  endif()
+
+endfunction()

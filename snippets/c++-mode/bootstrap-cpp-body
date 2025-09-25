@@ -1,0 +1,39 @@
+# -*- mode: snippet -*-
+# name: bootstrap-cpp-body
+# --
+int run(int argc, char *argv[]) \{
+
+  // since this function can be called from anywhere, make sure we are called
+  // with sane arguments as if from main()
+  if (argc < 1 || argv == nullptr) \{
+    return 0;
+  \}
+
+`(when (ide-cpp-has-environment-sibling) (progn
+ (insert "  // load user environment\n")
+ (insert "  auto env = std::make_unique<Environment>();\n")))`
+
+  // load application configuration
+  auto config = std::make_unique<Config>();
+  try {
+    config->parseArguments(argc, argv);
+  } catch (int e) {
+    return e;
+  }
+
+  // replace this code with something meaningful
+  auto myProject = std::make_unique<`(ide-cpp-project-or-submodule-class)`>();
+  std::cout << myProject->about() << std::endl;
+
+`(when (ide-cpp-has-environment-sibling) (progn
+  (insert "  // do some locale stuff\n")
+  (insert "  env->locale(\"en_US\");\n")
+  (insert "  std::cout << boost::locale::as::date << boost::locale::as::date_full << std::time(0) << std::endl;\n")
+  (insert "  env->locale(\"de_DE\");\n")
+  (insert "  std::cout << boost::locale::as::date << boost::locale::as::date_full << std::time(0) << std::endl;\n")
+  (insert "  env->locale(\"ja_JP\");\n")
+  (insert "  std::cout << boost::locale::as::date << boost::locale::as::date_full << std::time(0) << std::endl;\n")))`
+
+  return 0;
+\}
+$0

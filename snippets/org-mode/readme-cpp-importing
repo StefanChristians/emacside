@@ -1,0 +1,16 @@
+# -*- mode: snippet -*-
+# name: readme-cpp-importing
+# key: readme-cpp-importing
+# --
+** Importing to other CMake Projects
+
+Development targets installed using ~cmake --install --component=devel~ are configured to be imported into other CMake projects with ~find_package()~.
+
+If the targets have not been installed in the search path of ~find_package()~ (for example, because they were installed in a staging directory), the installation location needs to be passed to the importing project by setting ~CMAKE_PREFIX_PATH~ when configuring the build system:
+
+#+BEGIN_SRC sh
+\$ # in importing project's project root:
+\$ cmake -B path/to/output/directory -DCMAKE_PREFIX_PATH=path/to/exported/installation/location
+#+END_SRC
+
+$0

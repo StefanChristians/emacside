@@ -1,0 +1,88 @@
+# -*- mode: snippet -*-
+# name: version
+# group: module
+# --
+include_guard(GLOBAL)
+
+# -------------------------------------------------------------------
+# Configure-time reading of VERSION file
+# -------------------------------------------------------------------
+
+# fallback values
+set(PROJECT_VERSION_MAJOR 0)
+set(PROJECT_VERSION_MINOR 0)
+set(PROJECT_VERSION_PATCH 0)
+set(PROJECT_VERSION "0.0.0")
+set(PROJECT_VERSION_FULL "0.0.0-fallback")
+
+# locate VERSION file
+set(version_file_base "`(symbol-value 'ide-common-default-version-file-base)`")
+set(version_file_extensions `(concat (mapconcat (lambda (x) (format "\"%s\"" (or (car x) ""))) ide-common-available-version-file-extensions " "))`)
+set(PROJECT_VERSION_FILE "")
+
+foreach(ext IN LISTS version_file_extensions)
+    set(candidate "\$\{CMAKE_SOURCE_DIR\}/\$\{version_file_base\}\$\{ext\}")
+    if(EXISTS "\$\{candidate\}")
+        set(PROJECT_VERSION_FILE "\$\{candidate\}")
+        break()
+    endif()
+endforeach()
+
+# read version if file exists
+if(PROJECT_VERSION_FILE)
+    file(READ "\$\{PROJECT_VERSION_FILE\}" VERSION_STRING)
+    string(STRIP "\$\{VERSION_STRING\}" VERSION_STRING)
+    string(REGEX MATCH "^([0-9]+)\\\\.([0-9]+)\\\\.([0-9]+)" VERSION_CLEAN "\$\{VERSION_STRING\}")
+    if(VERSION_CLEAN)
+        set(PROJECT_VERSION_MAJOR "\$\{CMAKE_MATCH_1\}")
+        set(PROJECT_VERSION_MINOR "\$\{CMAKE_MATCH_2\}")
+        set(PROJECT_VERSION_PATCH "\$\{CMAKE_MATCH_3\}")
+        set(PROJECT_VERSION "\$\{VERSION_CLEAN\}")
+        set(PROJECT_VERSION_FULL "\$\{VERSION_STRING\}")
+    else()
+        message(WARNING "Malformed version string in \$\{PROJECT_VERSION_FILE\}. Falling back to 0.0.0-fallback")
+    endif()
+else()
+    message(WARNING "No version file found. Falling back to 0.0.0-fallback")
+endif()
+
+message(STATUS "Project version (full): \$\{PROJECT_VERSION_FULL\}")
+message(STATUS "  Major: \$\{PROJECT_VERSION_MAJOR\}")
+message(STATUS "  Minor: \$\{PROJECT_VERSION_MINOR\}")
+message(STATUS "  Patch: \$\{PROJECT_VERSION_PATCH\}")
+
+# -------------------------------------------------------------------
+# Function to dynamically configure version.cpp using version_helper.cmake
+# -------------------------------------------------------------------
+function(configure_version_file input output)
+    # resolve paths
+    if(NOT IS_ABSOLUTE "\$\{input\}")
+        set(input "\$\{CMAKE_CURRENT_SOURCE_DIR\}/\$\{input\}")
+    endif()
+    if(NOT IS_ABSOLUTE "\$\{output\}")
+        set(output "\$\{CMAKE_CURRENT_BINARY_DIR\}/\$\{output\}")
+    endif()
+
+    # configure at configure time
+    configure_file("\$\{input\}" "\$\{output\}" @ONLY)
+
+    # add dynamic update only if VERSION file exists
+    if(EXISTS "\$\{PROJECT_VERSION_FILE\}")
+        add_custom_command(
+            OUTPUT "\$\{output\}"
+            COMMAND \$\{CMAKE_COMMAND\}
+                -DINPUT="\$\{input\}"
+                -DOUTPUT="\$\{output\}"
+                -DPROJECT_VERSION_FILE="\$\{PROJECT_VERSION_FILE\}"
+                -DPROJECT_NAME="\$\{PROJECT_NAME\}"
+                -DPROJECT_DESCRIPTION="\$\{PROJECT_DESCRIPTION\}"
+                -P "\$\{CMAKE_SOURCE_DIR\}/cmake/version_helper.cmake"
+            DEPENDS "\$\{input\}" "\$\{PROJECT_VERSION_FILE\}"
+            COMMENT "Dynamically updating \$\{output\} from VERSION file"
+        )
+
+        # add a custom target to ensure it runs
+        get_filename_component(target_name "\$\{output\}" NAME_WE)
+        add_custom_target("dynamic_\$\{target_name\}" ALL DEPENDS "\$\{output\}")
+    endif()
+endfunction()

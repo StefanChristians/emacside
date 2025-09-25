@@ -1,0 +1,25 @@
+# -*- mode: snippet -*-
+# name: readme-cpp-vcs-git
+# key: readme-cpp-vcs-git
+# --
+** Version Control System
+
+The version control system used to track changes is Git.
+
+To keep the main line of code clean, switch to a development branch before making any modifications.
+When you are done, switch back to the main branch and merge in your changes.
+
+Example:
+#+BEGIN_SRC sh
+\$ git switch -c dev # create the dev branch and switch to it
+\$
+\$ ... # make some modifications
+\$
+\$ git add . # stage your changes
+\$ git commit -m "fix: correct the calculation" # commit your changes (see next section)
+\$ git switch main # switch back to main branch
+\$ git merge dev # merge branch dev into main
+\$ git branch -d dev # delete the dev branch if it is no longer needed
+#+END_SRC
+
+$0

@@ -1,0 +1,16 @@
+# -*- mode: snippet -*-
+# name: interprocedural_optimization
+# group: module
+# --
+include_guard(GLOBAL)
+
+# Enable Interprocedural Optimization (IPO) for release configurations
+# if supported by compiler.
+
+include(CheckIPOSupported)
+check_ipo_supported(RESULT ipo_supported)
+if(ipo_supported)
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_MINSIZEREL ON)
+endif()

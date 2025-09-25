@@ -1,0 +1,25 @@
+# -*- mode: snippet -*-
+# name: boost
+# group: module
+# --
+include_guard(GLOBAL)
+
+# Provide Boost libraries.
+
+FetchContent_Declare_Persist(
+  Boost
+  GIT_REPOSITORY "https://github.com/boostorg/boost.git"
+  GIT_TAG "latest"
+  GIT_PROGRESS ON
+  GIT_SHALLOW ON
+  OVERRIDE_FIND_PACKAGE TRUE
+  EXCLUDE_FROM_ALL
+)
+
+fetchcontent_makeavailable(Boost)
+
+# load individual boost libraries later like this:
+# find_package(Boost REQUIRED COMPONENTS <library> <library> ...)
+
+# add boost libraries to targets later like this:
+# target_link_library_if_exists(<target> Boost::<library>)

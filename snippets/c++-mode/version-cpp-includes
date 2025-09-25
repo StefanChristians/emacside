@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: version-cpp-includes
+# --
+#include <string>
+
+$0

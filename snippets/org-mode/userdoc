@@ -1,0 +1,97 @@
+# -*- mode: snippet -*-
+# name: userdoc
+# key: userdoc
+# --
+#+title: ${1:`(ide-common-get-project-human-name)`}
+#+subtitle: ${2:Description.}
+
+* Usage
+#+BEGIN_SRC sh
+  \$ ${3:`(ide-common-get-project-machine-name)`} [OPTIONS]
+  #+END_SRC
+
+* Options
+Below is a list of available options:
+
+** ~-h,--help~
+Displays usage information and details about the available options.
+
+Usage:
+#+BEGIN_SRC sh
+  \$ $3 --help
+  #+END_SRC
+
+Description:
+- Shows the help message with information about the command-line options supported by the program.
+- No other action will be taken if this option is provided.
+
+** ~-V,--version~
+Displays the version information of the program.
+
+Usage:
+#+BEGIN_SRC sh
+  \$ $3 --version
+  #+END_SRC
+
+Description:
+- Outputs the version number.
+- This option is useful for checking which version of the program you have installed.
+- No other action will be taken if this option is provided.
+
+** ~-q,--quiet~
+Runs the program with minimal output.
+
+Usage:
+#+BEGIN_SRC sh
+  \$ $3 --quiet
+  #+END_SRC
+
+Description:
+- Suppresses all non-essential output. This is useful when you want the program to run silently without showing status messages, warnings, or progress information.
+- Typically used in scripts or automation where minimal output is preferred.
+- Output can be further reduced by repeating this option, as in ~$3 -qqq~.
+
+** ~-v,--verbose~
+Runs the program with detailed output.
+
+Usage:
+#+BEGIN_SRC sh
+  \$ $3 --verbose
+  #+END_SRC
+
+Description:
+- Outputs detailed information about the program’s execution, including progress updates, debugging information, and other diagnostic details.
+- Useful for debugging or understanding the program's behavior in detail.
+- Verbosity can be further increased by repeating this option, as in ~$3 -vvv~.
+
+#+BEGIN_VERSE
+*Note:*
+The ~--quiet~ and ~--verbose~ options are cumulative. The effective verbosity is the difference of ~--verbose~  and ~--quiet~ counts. If neither is specified, or if the counts of both is equal, the program runs with default output verbosity.
+#+END_VERSE
+
+
+* Exit Status Codes
+- *0*: The program executed successfully.
+- *109*: Invalid command-line option or usage.
+
+
+* Third-Party Libraries
+
+This software uses the following third-party libraries:
+
+- **Boost.Dll**
+  - simplify plugin development using C++ in a portable cross-platform manner
+  - [[https://www.boost.org/][Boost official site]]
+  - [[https://www.boost.org/users/license.html][Boost Software License]]
+
+- **Boost.Locale**
+  - high quality localization facilities in C++
+  - [[https://www.boost.org/][Boost official site]]
+  - [[https://www.boost.org/users/license.html][Boost Software License]]
+
+- **CLI11**
+  - command line parser for C++11
+  - [[https://github.com/CLIUtils/CLI11][CLI11 github repository]]
+  - [[https://github.com/CLIUtils/CLI11?tab=License-1-ov-file#readme][CLI11 License]]
+
+$0

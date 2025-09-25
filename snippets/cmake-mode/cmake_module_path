@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: cmake_module_path
+# key: modpath
+# --
+list(APPEND CMAKE_MODULE_PATH "\$\{CMAKE_SOURCE_DIR\}/${1:`ide-cpp-default-cmake-directory`}")$0

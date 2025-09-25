@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: version-hpp-includes
+# --
+#include <string>
+
+$0

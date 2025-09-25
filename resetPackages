@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# remove Emacs cache and packages
+# packages will be rebuilt on next start
+
+# get this script's directory
+# See https://stackoverflow.com/a/246128/3561275
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+    DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+
+# remove installed packages
+rm -rf "${DIR}/elpa"
+rm -rf "${DIR}/quelpa"
+
+# remove data dirs
+rm -rf "${DIR}/auto-save-list"
+#rm -rf "${DIR}/.cache" ## keep treemacs-persist, delete other files in here
+rm -f  "${DIR}/custom.el"
+rm -rf "${DIR}/eln-cache"
+rm -f "${DIR}/.last-package-update-day"
+rm -f "${DIR}/.lsp-session-v1"
+rm -f "${DIR}/projectile-bookmarks.eld"
+rm -f "${DIR}/recentf"
+rm -rf "${DIR}/transient"
+rm -rf "${DIR}/var"
+

@@ -1,0 +1,19 @@
+# -*- mode: snippet -*-
+# name: version-cpp-body
+# --
+namespace version {
+// clang-format off
+  const std::string ProjectName {"@PROJECT_NAME@"};
+  const std::string ProjectDescription {"@PROJECT_DESCRIPTION@"};
+
+  const std::string Domain {"`(ide-cpp-project-or-submodule-name)`"};
+
+  const unsigned int MajorVersion {@PROJECT_VERSION_MAJOR@};
+  const unsigned int MinorVersion {@PROJECT_VERSION_MINOR@};
+  const unsigned int PatchLevel {@PROJECT_VERSION_PATCH@};
+
+  const std::string VersionString {"@PROJECT_VERSION_FULL@"};
+// clang-format on
+} // namespace version
+
+$0

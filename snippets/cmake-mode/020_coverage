@@ -1,0 +1,262 @@
+# -*- mode: snippet -*-
+# name: coverage
+# group: module
+# --
+include_guard(GLOBAL)
+
+# Measure code covered by unit tests
+
+# default location for generated coverage reports
+set(CMAKE_COVERAGE_OUTPUT_DIR "output/reports/coverage" CACHE STRING "Output directory in build tree for generated code coverage reports.")
+
+# force synchronous processing
+set_property(GLOBAL PROPERTY JOB_POOLS llvm-cov-sync=1)
+
+# required binaries
+find_program(LLVMCOV_EXECUTABLE llvm-cov)
+find_program(LLVMPROFDATA_EXECUTABLE llvm-profdata)
+find_program(GCOV_EXECUTABLE gcov)
+find_program(GCOVR_EXECUTABLE gcovr)
+mark_as_advanced(LLVMCOV_EXECUTABLE LLVMPROFDATA_EXECUTABLE GCOV_EXECUTABLE GCOVR_EXECUTABLE)
+
+set(COVERAGE_AVAILABLE True)
+
+# check for required build configuration type
+if(\$\{COVERAGE_AVAILABLE\})
+  get_property(GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+  if((NOT CMAKE_BUILD_TYPE STREQUAL "Debug") AND (NOT GENERATOR_IS_MULTI_CONFIG))
+    message(STATUS "non-debug build configuration - code coverage disabled")
+    set(COVERAGE_AVAILABLE False)
+  endif()
+endif()
+
+# check for compatible compiler
+if(\$\{COVERAGE_AVAILABLE\})
+  if("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "Clang" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "Clang")
+
+    # using clang / clang++
+
+    # check for llvm-cov executable
+    if (LLVMCOV_EXECUTABLE)
+      execute_process(
+        COMMAND \$\{LLVMCOV_EXECUTABLE\} --version
+        OUTPUT_VARIABLE LLVMCOV_VERSION
+      )
+      string(REGEX REPLACE ".*version ([^ ]+)\\n.*" "\\\\1" LLVMCOV_VERSION "\$\{LLVMCOV_VERSION\}")
+      message(STATUS "Found llvm-cov: \$\{LLVMCOV_EXECUTABLE\} (found version \\"\$\{LLVMCOV_VERSION\}\\")")
+    else()
+      message(STATUS "llvm-cov not found - code coverage disabled")
+      set(COVERAGE_AVAILABLE False)
+      break()
+    endif()
+
+    # check for llvm-profdata executable
+    if (LLVMPROFDATA_EXECUTABLE)
+      message(STATUS "Found llvm-profdata: \$\{LLVMPROFDATA_EXECUTABLE\}")
+    else()
+      message(STATUS "llvm-profdata not found - code coverage disabled")
+      set(COVERAGE_AVAILABLE False)
+      break()
+    endif()
+
+  elseif("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "GNU" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "GNU")
+
+    # using gcc / g++
+
+    # check for gcov executable
+    if (GCOV_EXECUTABLE)
+      execute_process(
+        COMMAND \$\{GCOV_EXECUTABLE\} --version
+        OUTPUT_VARIABLE GCOV_VERSION
+      )
+      string(REGEX REPLACE "^gcov[ \\\\(\\\\)A-Za-z]+ ([1-9\\\\.]+) .*" "\\\\1" GCOV_VERSION "\$\{GCOV_VERSION\}")
+      message(STATUS "Found gcov: \$\{GCOV_EXECUTABLE\} (found version \\"\$\{GCOV_VERSION\}\\")")
+    else()
+      message(STATUS "gcov not found - code coverage disabled")
+      set(COVERAGE_AVAILABLE False)
+      break()
+    endif()
+
+    # check for GCovr executable
+    if (GCOVR_EXECUTABLE)
+      execute_process(
+        COMMAND \$\{GCOVR_EXECUTABLE\} --version
+        OUTPUT_VARIABLE GCOVR_VERSION
+      )
+      string(REGEX REPLACE "^gcovr ([^ \\t\\r\\n]+).*" "\\\\1" GCOVR_VERSION "\$\{GCOVR_VERSION\}")
+      message(STATUS "Found GCovr: \$\{GCOVR_EXECUTABLE\} (found version \\"\$\{GCOVR_VERSION\}\\")")
+    else()
+      message(STATUS "GCovr not found - code coverage disabled")
+      set(COVERAGE_AVAILABLE False)
+      break()
+    endif()
+
+  else()
+    message(STATUS "incompatible compiler - code coverage disabled")
+    set(COVERAGE_AVAILABLE False)
+    break()
+  endif()
+endif()
+
+
+# configure code coverage
+if(\$\{COVERAGE_AVAILABLE\})
+  message(STATUS "code coverage measurements enabled")
+
+  set(reportdir "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_COVERAGE_OUTPUT_DIR\}")
+  file(MAKE_DIRECTORY "\$\{reportdir\}")
+
+  if("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "GNU" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "GNU")
+
+    add_custom_target(
+      coverage
+      COMMAND
+      "\$\{GCOVR_EXECUTABLE\}"
+      -r "\$\{CMAKE_SOURCE_DIR\}"
+      --exclude ".*_thin_wrapper\\.*"
+      --exclude ".*_interface\\..*"
+      --object-directory "\$\{CMAKE_BINARY_DIR\}"
+      --exclude-unreachable-branches
+      --exclude-throw-branches
+      --html-details "\$\{reportdir\}/index.html"
+      --sonarqube "\$\{reportdir\}/sonarqube.xml"
+      VERBATIM
+      BYPRODUCTS "\$\{reportdir\}/index.html" "\$\{reportdir\}/sonarqube.xml"
+      COMMENT "Generating code coverage reports"
+      WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
+    )
+
+  elseif("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "Clang" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "Clang")
+
+    set(datadir "\$\{reportdir\}/profiles")
+    file(MAKE_DIRECTORY "\$\{datadir\}")
+    set(objects_cache "\$\{datadir\}/objects.txt")
+    set(merged_profiles "\$\{datadir\}/merged.profdata")
+
+    # target to enforce object dependencies
+    add_custom_target(llvm-cov-objects)
+
+    # target to merge individual raw profiles
+    add_custom_target(
+      llvm-cov-merge
+      COMMAND \$\{LLVMPROFDATA_EXECUTABLE\} merge --sparse "\$\{datadir\}/*.profraw" -o "\$\{merged_profiles\}"
+      BYPRODUCTS "\$\{merged_profiles\}"
+      COMMENT "Merging code coverage metrics"
+      WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
+      JOB_POOL llvm-cov-sync
+    )
+
+    # target to generate reports
+    if(WIN32)
+      add_custom_target(
+        coverage
+        # json
+        COMMAND powershell -Command \$\$FILELIST = Get-Content "\$\{objects_cache\}" \\; llvm-cov.exe export \$\$FILELIST -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -format="text" -sources "\$\{CMAKE_SOURCE_DIR\}"
+        # html
+        COMMAND powershell -Command \$\$FILELIST = Get-Content "\$\{objects_cache\}" \\; llvm-cov.exe show \$\$FILELIST -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -show-line-counts-or-regions -output-dir="\$\{reportdir\}" -format="html" -sources "\$\{CMAKE_SOURCE_DIR\}"
+        # terminal
+        #COMMAND powershell -Command \$\$FILELIST = Get-Content "\$\{objects_cache\}" \\; llvm-cov.exe report \$\$FILELIST -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -sources "\$\{CMAKE_SOURCE_DIR\}"
+        DEPENDS llvm-cov-merge
+        BYPRODUCTS "\$\{reportdir\}/coverage.json" "\$\{reportdir\}/coverage.html"
+        COMMENT "Generating code coverage reports"
+        WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
+      )
+    else()
+      add_custom_target(
+        coverage
+        # json
+        COMMAND \$\{LLVMCOV_EXECUTABLE\} export \`cat "\$\{objects_cache\}" \` -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -format="text" -sources "\$\{CMAKE_SOURCE_DIR\}" > \$\{reportdir\}/coverage.json
+        # html
+        COMMAND \$\{LLVMCOV_EXECUTABLE\} show \`cat "\$\{objects_cache\}" \` -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -show-line-counts-or-regions -output-dir="\$\{reportdir\}" -format="html" -sources "\$\{CMAKE_SOURCE_DIR\}"
+        # terminal
+        #COMMAND \$\{LLVMCOV_EXECUTABLE\} report \`cat "\$\{objects_cache\}" \` -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -sources "\$\{CMAKE_SOURCE_DIR\}"
+        DEPENDS llvm-cov-merge
+        BYPRODUCTS "\$\{reportdir\}/coverage.json" "\$\{reportdir\}/coverage.html"
+        COMMENT "Generating code coverage reports"
+        WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
+      )
+    endif()
+
+  endif()
+
+else()
+  add_custom_target(coverage COMMAND true COMMENT "Code coverage measurement disabled - nothing to do")
+endif()
+
+# add compiler flags to targets for code coverage
+function(measure_coverage target)
+  if(\$\{COVERAGE_AVAILABLE\})
+
+    if("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "GNU" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "GNU")
+
+      target_compile_options(\$\{target\} PRIVATE \$<\$<CONFIG:Debug>:--coverage -fno-inline -fprofile-abs-path>)
+
+      target_link_options(\$\{target\} PUBLIC \$<\$<CONFIG:Debug>:--coverage>)
+
+      # wipe stale .gcda files before re-building object files
+      add_custom_command(
+        TARGET \$\{target\}
+        PRE_BUILD
+        COMMAND find "\$\{CMAKE_CURRENT_BINARY_DIR\}" -type f -name '*.gcda' -exec rm \{\} +
+        COMMENT "wiping stale coverage data files"
+      )
+
+    elseif("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "Clang" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "Clang")
+
+      target_compile_options(\$\{target\} PRIVATE \$<\$<CONFIG:Debug>:-fprofile-instr-generate -fcoverage-mapping -fno-inline>)
+
+      target_link_options(\$\{target\} PUBLIC \$<\$<CONFIG:Debug>:-fprofile-instr-generate -fcoverage-mapping>)
+
+      set(datadir "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_COVERAGE_OUTPUT_DIR\}/profiles")
+      set(objects_cache "\$\{datadir\}/objects.txt")
+
+      if(target_type STREQUAL "SHARED_LIBRARY")
+        add_custom_target(
+          llvm-cov-prepare-\$\{target\}
+          COMMAND \$\{CMAKE_COMMAND\} -E echo "-object=\$<TARGET_FILE:\$\{target\}>" >> "\$\{objects_cache\}"
+          DEPENDS \$\{target\}
+        )
+        add_dependencies(llvm-cov-objects llvm-cov-prepare-\$\{target\})
+
+      endif() # shared library
+
+    endif() # CMAKE_COMPILER_ID
+
+  endif() # COVERAGE_AVAILABLE
+endfunction() # measure coverage
+
+
+# add tests to execute for collecting code coverage metrics
+function(report_coverage test)
+  if(\$\{COVERAGE_AVAILABLE\})
+
+    if("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "GNU" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "GNU")
+
+      add_custom_target(
+        "coverage_\$\{test\}"
+        COMMAND "\$<TARGET_FILE:\$\{test\}>"
+        WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
+      )
+      add_dependencies(coverage "coverage_\$\{test\}")
+
+    elseif("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "Clang" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "Clang")
+
+      set(datadir "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_COVERAGE_OUTPUT_DIR\}/profiles")
+      set(profile "\$\{datadir\}/\$\{test\}.profraw")
+      set(objects_cache "\$\{datadir\}/objects.txt")
+
+      add_custom_target(
+        "coverage_\$\{test\}"
+        COMMAND \$\{CMAKE_COMMAND\} -E env LLVM_PROFILE_FILE="\$\{profile\}" "\$<TARGET_FILE:\$\{test\}>"
+        COMMAND \$\{CMAKE_COMMAND\} -E echo "-object=\$<TARGET_FILE:\$\{test\}>" >> "\$\{objects_cache\}"
+        BYPRODUCTS "\$\{profile\}"
+        WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
+        JOB_POOL llvm-cov-sync
+        DEPENDS llvm-cov-objects \$\{test\}
+      )
+      add_dependencies(llvm-cov-merge "coverage_\$\{test\}")
+
+    endif()
+
+  endif()
+endfunction()

@@ -1,0 +1,29 @@
+# -*- mode: snippet -*-
+# name: readme-cpp-documentation
+# key: readme-cpp-documentation
+# --
+** Documentation
+
+Generate documentation using following targets:
+- ~-t docs~ :: Generate all documentation.
+- ~-t apidocs~ :: Generate API documentation.
+- ~-t publicapidocs~ :: Generate only public API documentation for developing against this software's public interface.
+- ~-t privateapidocs~ :: Generate only private API documentation for developing this software itself.
+- ~-t graphviz~ :: Generate dependency graphs.
+- ~-t userdocs~ :: Generate user documentation.
+
+Example:
+#+BEGIN_SRC sh
+\$ cmake --build /path/to/output/directory/ -t apidocs
+#+END_SRC
+
+Documentation will be stored in the ~output/docs~ subdirectory of the build path.
+
+#+BEGIN_VERSE
+*Note:*
+[[https://doxygen.nl][Doxygen]] is required for API documentation.
+[[https://graphviz.org][Graphviz]] is required for dependency graphs.
+[[https://asciidoctor.org][Asciidoctor]] is required for user documentation.
+#+END_VERSE
+
+$0

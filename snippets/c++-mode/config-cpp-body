@@ -1,0 +1,38 @@
+# -*- mode: snippet -*-
+# name: config-cpp-body
+# --
+void Config::parseArguments(int argc, char **argv) \{
+
+  // check for valid arguments
+  if (argc > 0 && argv != nullptr) \{
+
+    // create parser
+    CLI::App parser\{version::ProjectDescription, version::ProjectName\};
+    argv = parser.ensure_utf8(argv);
+
+    // define options and bind them to member variables
+    parser.set_version_flag("-V,--version", version::VersionString);
+    parser
+        .add_flag("-q,--quiet", quietCount_, "Decrease verbosity (cumulative)")
+        ->default_str("");
+    parser
+        .add_flag("-v,--verbose", verboseCount_,
+                  "Increase verbosity (cumulative)")
+        ->default_str("");
+
+    // parse command line arguments
+    try \{
+      parser.parse(argc, argv);
+    \} catch (const CLI::ParseError &e) \{
+      // throw exit code as integer value:
+      // --help and --version return exit code 0, but should terminate the
+      // application. By throwing the exit code, main() can catch the exception
+      // and terminate even though the exit code is 0 (success).
+      throw parser.exit(e);
+    \}
+  \}
+\}
+
+int Config::verbosity() const \{ return (verboseCount_ - quietCount_); \}
+
+$0

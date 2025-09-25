@@ -1,0 +1,101 @@
+# -*- mode: snippet -*-
+# name: api_documentation
+# group: module
+# --
+include_guard(GLOBAL)
+
+# Build API documentation using Doxygen.
+
+# default locations for generated api documentation
+set(CMAKE_PRIVATE_APIDOCS_OUTPUT_DIR "output/docs/api_private" CACHE STRING "Output directory in build tree for generated private API documentation.")
+set(CMAKE_PUBLIC_APIDOCS_OUTPUT_DIR "output/docs/api_public" CACHE STRING "Output directory in build tree for generated public API documentation.")
+
+# load doxygen
+find_package(Doxygen)
+
+if (DOXYGEN_FOUND)
+
+  # use modern theme
+  FetchContent_Declare_Persist(
+    doxygen-awesome-css
+    GIT_REPOSITORY "https://github.com/jothepro/doxygen-awesome-css.git"
+    GIT_TAG "latest"
+    GIT_PROGRESS ON
+    GIT_SHALLOW ON
+  )
+  FetchContent_MakeAvailable(doxygen-awesome-css)
+
+  # global Doxygen settings
+  # (override in apidocs_generate_...() functions if necessary)
+  string(TOUPPER \$\{CMAKE_PROJECT_NAME\} upper_title)
+  set(DOXYGEN_HAVE_DOT YES)
+  set(DOXYGEN_PROJECT_NAME \$\{upper_title\})
+  set(DOXYGEN_GENERATE_HTML YES)
+  set(DOXYGEN_DOT_TRANSPARENT YES)
+  set(DOXYGEN_DOT_IMAGE_FORMAT svg)
+  set(DOXYGEN_GENERATE_TREEVIEW YES)
+  set(DOXYGEN_HTML_EXTRA_STYLESHEET \$\{doxygen-awesome-css_SOURCE_DIR\}/doxygen-awesome.css)
+  set(DOXYGEN_MULTILINE_CPP_IS_BRIEF YES)
+
+  # actual targets
+  add_custom_target(apidocs DEPENDS publicapidocs privateapidocs)
+
+else()
+
+  # use dummy targets if Doxygen was not found
+  add_custom_target(apidocs COMMAND true COMMENT "Doxygen not found - nothing to do")
+  add_custom_target(publicapidocs COMMAND true COMMENT "Doxygen not found - nothing to do")
+  add_custom_target(privateapidocs COMMAND true COMMENT "Doxygen not found - nothing to do")
+
+endif()
+
+# doxygen_add_docs wrappers to generate API documentation
+# (using separate functions to allow target-specific set(DOXYGEN...) overrides)
+function(apidocs_generate_private files)
+  if (DOXYGEN_FOUND)
+    set(docsdir "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_PRIVATE_APIDOCS_OUTPUT_DIR\}")
+    file(MAKE_DIRECTORY "\$\{docsdir\}")
+    set(DOXYGEN_HTML_OUTPUT "\$\{docsdir\}")
+    doxygen_add_docs(privateapidocs \$\{files\})
+  endif()
+endfunction()
+
+function(apidocs_generate_public files)
+  if (DOXYGEN_FOUND)
+    set(docsdir "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_PUBLIC_APIDOCS_OUTPUT_DIR\}")
+    file(MAKE_DIRECTORY "\$\{docsdir\}")
+    set(DOXYGEN_HTML_OUTPUT "\$\{docsdir\}")
+    doxygen_add_docs(publicapidocs \$\{files\})
+  endif()
+endfunction()
+
+# dynamic api documentation lists
+set(apidocs_list_private "" CACHE INTERNAL "")
+macro(apidocs_append_private files)
+  set(templist \$\{apidocs_list_private\})
+  list(APPEND templist \$\{files\})
+  set(apidocs_list_private \$\{templist\} CACHE INTERNAL "")
+endmacro()
+
+set(apidocs_list_public "" CACHE INTERNAL "")
+macro(apidocs_append_public files)
+  set(templist \$\{apidocs_list_public\})
+  list(APPEND templist \$\{files\})
+  set(apidocs_list_public \$\{templist\} CACHE INTERNAL "")
+  apidocs_append_private(\$\{files\})
+  # install public api documentation
+  if(NOT APIDOCS_PUBLIC_INSTALL_RULE_ADDED)
+    set(APIDOCS_PUBLIC_INSTALL_RULE_ADDED true)
+    install (DIRECTORY
+      "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_PUBLIC_APIDOCS_OUTPUT_DIR\}/"
+      DESTINATION "\$\{CMAKE_INSTALL_DOCDIR\}/api"
+      COMPONENT devel OPTIONAL
+    )
+  endif()
+endmacro()
+
+# finalize api docs generation
+function(apidocs_generate)
+  apidocs_generate_public("\$\{apidocs_list_public\}")
+  apidocs_generate_private("\$\{apidocs_list_private}")
+endfunction()

@@ -1,0 +1,27 @@
+# -*- mode: snippet -*-
+# name: sources
+# key: sources
+# type: command
+# --
+(let ((source-files (ide-cpp-list-source-files))
+      (target (ide-cpp-get-cmake-target)))
+  (when source-files
+    (insert "# sources\n")
+    (cond
+     ;; bootstrapped application
+     ;; ========================
+     ((and (ide-cpp-has-main-sibling) (ide-cpp-has-bootstrap-sibling))
+      (insert (format "target_sources(%s PRIVATE\n" target))
+      (ide-cpp-insert-cmake-sources
+       (ide-cpp-list-source-files buffer-file-name t)))
+     ;; test
+     ;; ====
+     ((ide-cpp-is-test)
+      (insert (format "target_sources(%s_tests PRIVATE\n" target))
+      (ide-cpp-insert-cmake-sources source-files))
+     ;; default
+     ;; =======
+     (t
+      (insert (format "target_sources(%s PRIVATE\n" target))
+      (ide-cpp-insert-cmake-sources source-files)))
+    (insert ")\n\n")))

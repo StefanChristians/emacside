@@ -1,0 +1,25 @@
+# -*- mode: snippet -*-
+# name: header
+# key: header
+# --
+;;; `(f-filename (buffer-file-name))` --- ${1:Summary} -*- lexical-binding: t; -*-
+
+;; Version: ${2:0.0.1}
+
+;; Copyright (C) `(format-time-string "%Y")` `user-full-name`
+;; SPDX-License-Identifier: ${3:MIT}
+
+;;; Commentary:
+
+;; ${4:Description}
+
+;;; Code:
+
+$0
+
+`(progn (setq unread-command-events '(12))(quoted-insert 1))`
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; end of file
+
+(provide '`(f-no-ext (f-filename (buffer-file-name)))`)
+;;; `(f-filename (buffer-file-name))` ends here

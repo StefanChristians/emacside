@@ -1,0 +1,295 @@
+# -*- mode: snippet -*-
+# name: xcompile
+# group: buildtool
+# key: xcomp
+# expand-env: ((yas-indent-line 'fixed))
+# --
+#!/usr/bin/python
+
+# cross-compilation wrapper for cmake configuration
+
+import os
+import re
+import sys
+import argparse
+import subprocess
+
+from shutil import rmtree
+from pathlib import Path
+from itertools import chain
+
+# defaults
+default_build_dir = "`(symbol-value 'ide-cpp-default-build-directory)`"
+default_source_dir = "."
+default_toolchain_root = os.environ.get('TOOLCHAIN_ROOT')
+
+# command line arguments
+
+parser = argparse.ArgumentParser(
+    description="cmake configuration and generation wrapper")
+
+list_group = parser.add_argument_group("information")
+list_group.add_argument("--list-generators", action="store_true",
+                        help="list available generators")
+list_group.add_argument("--list-toolchains", action="store_true",
+                        help="list available toolchains")
+
+compile_group = parser.add_argument_group("compile settings")
+compile_group.add_argument(
+    "-S", "--source-dir", default=default_source_dir, help="source directory")
+compile_group.add_argument("-B", "--build-dir", default=default_build_dir,
+                           help="build base directory")
+compile_group.add_argument("-T", "--toolchain-root",
+                           default=default_toolchain_root,
+                           help=("toolchain root directory (defaults to "
+                                 "TOOLCHAIN_ROOT environment variable)"))
+compile_group.add_argument("-g", "--generator", help="build generator")
+compile_group.add_argument("-c", "--compiler", help="compiler")
+compile_group.add_argument("-f", "--config", default="Debug",
+                           help=("comma-separated list of configurations "
+                                 "(Debug,Release,RelWithDebInfo,MinSizeRel,"
+                                 "...), or combination of letters DRHM "
+                                 "(D=debug, R=release, H=hybrid, M=minimal)"))
+compile_group.add_argument("--build", action="store_true",
+                           help="run cmake --build after configuring")
+
+target_group = parser.add_argument_group("target platforms")
+target_group.add_argument("-n", "--native", action="store_true",
+                          help="native compile only")
+target_group.add_argument("-x", "--toolchain",
+                          help=("comma-separated list of toolchains for "
+                                "cross-compiling"))
+target_group.add_argument("-a", "--all", action="store_true",
+                          help="cross-compile natively and all toolchains")
+
+args = parser.parse_args()
+
+# make sure we have at least one target
+if not args.toolchain and not args.all:
+    args.native = True
+
+# working directory is project root
+project_root = Path(sys.path[0]).parent.absolute()
+os.chdir(project_root)
+
+
+def list_of_available_toolchains():
+    """
+    returns a list of available toolchains for cross-compiling
+    """
+    if args.toolchain_root:
+        toolchain_list = []
+        for file in os.listdir(args.toolchain_root):
+            if file.endswith(".cmake"):
+                toolchain_list.append(re.sub("\\\\.cmake\$", "", file))
+        return toolchain_list
+
+
+def toolchain_path(toolchain):
+    """
+    returns full path to toolchain
+    """
+    # look for toolchain
+    toolchain_file = toolchain
+    if Path(toolchain_file).is_file():
+        return toolchain_file
+    # look for toolchain.cmake
+    toolchain_file = "\{\}.cmake".format(toolchain_file)
+    if Path(toolchain_file).is_file():
+        return toolchain_file
+    # look for toolchain_root/toolchain
+    toolchain_file = os.path.join(args.toolchain_root, toolchain)
+    if Path(toolchain_file).is_file():
+        return toolchain_file
+    # look for toolchain_root/toolchain.cmake
+    toolchain_file = "\{\}.cmake".format(toolchain_file)
+    if Path(toolchain_file).is_file():
+        return toolchain_file
+
+
+def valid_toolchains(toolchains):
+    """
+    returns a dictionary of valid toolchain:path pairs
+    """
+    result = \{\}
+    for element in toolchains:
+        toolchain = toolchain_path(element)
+        if toolchain:
+            # extract platform from toolchain name
+            # (it might be an absolute path)
+            platform = Path(element).stem
+            result[platform] = toolchain
+    return result
+
+
+def source_directory():
+    """
+    returns cmake arguments for path to source directory
+    """
+    if args.source_dir:
+        return ['-S', args.source_dir]
+    return []
+
+
+def generator():
+    """
+    returns cmake arguments for selecting build system generator
+    """
+    if args.generator:
+        return ['-G',  args.generator]
+    return []
+
+
+def compiler():
+    """
+    returns cmake arguments for selecting compiler
+    """
+    if args.compiler:
+        return ['-D', "CMAKE_CXX_COMPILER:STRING=\{\}".format(args.compiler)]
+    return []
+
+
+def is_multi_conf():
+    """
+    returns true if the generator supports multiple configurations
+    """
+    if args.generator:
+        return "multi" in args.generator.lower()
+
+
+def effective_configurations():
+    """
+    returns a list of effective configurations to compile
+    """
+    if args.config:
+        effective_set = set()
+        raw_list = args.config.split(',')
+        for element in raw_list:
+            element = element.strip()
+            if re.search("^[DRHM]+\$", element):
+                for character in element:
+                    if character == "D":
+                        effective_set.add("Debug")
+                    elif character == "R":
+                        effective_set.add("Release")
+                    elif character == "H":
+                        effective_set.add("RelWithDebInfo")
+                    elif character == "M":
+                        effective_set.add("MinSizeRel")
+            else:
+                effective_set.add(element)
+        return list(effective_set)
+
+
+def build_directory_and_configurations(platform):
+    """
+    returns a list of lists with cmake arguments specifying platform build
+    directories and configurations
+    """
+    # default to native
+    if not platform:
+        platform = "native"
+    build_dir = os.path.join(args.build_dir, platform.lower())
+
+    result = []
+
+    if is_multi_conf():
+        # single path with multiple configurations
+        result.append(['-B', build_dir, '-D',
+                       "CMAKE_CONFIGURATION_TYPES:STRING=\{\}"
+                       .format(';'.join(effective_configurations()))])
+    else:
+        # multiple paths with single configuration each
+        for conf in effective_configurations():
+            result.append(['-B', os.path.join(build_dir, conf.lower()), '-D',
+                           "CMAKE_BUILD_TYPE:STRING=\{\}".format(conf)])
+
+    return result
+
+
+def all_targets():
+    """
+    cross-compile using all available toolchains
+    """
+    toolchain_target(list_of_available_toolchains())
+    native_target()
+
+
+def toolchain_target(toolchains):
+    """
+    cross-compile with specific tool chains
+    """
+    toolchains = valid_toolchains(toolchains)
+    for platform in toolchains:
+        for target in build_directory_and_configurations(platform):
+            rmtree(target[1], ignore_errors=True)
+            command = list(chain(['cmake'], source_directory(), generator(),
+                                 ['--toolchain', toolchains[platform]],
+                                 target))
+            if args.build:
+                # run sequentially
+                print()
+                print(" ".join(command))
+                subprocess.run(command)
+                print()
+                print("cmake --build \{\}".format(target[1]))
+                subprocess.run(['cmake', '--build', target[1]])
+            else:
+                # run in background
+                print(" ".join(command))
+                subprocess.Popen(command)
+
+
+def native_target():
+    """
+    native build
+    """
+    for target in build_directory_and_configurations(None):
+        rmtree(target[1], ignore_errors=True)
+        command = list(chain(['cmake'], source_directory(), generator(),
+                             compiler(), target))
+        if args.build:
+            # run sequentially
+            print()
+            print(" ".join(command))
+            subprocess.run(command)
+            print()
+            print("cmake --build \{\}".format(target[1]))
+            subprocess.run(['cmake', '--build', target[1]])
+        else:
+            # run in background
+            print(" ".join(command))
+            subprocess.Popen(command)
+
+
+def main():
+    # retrieve information
+    isList = False
+    if args.list_generators:
+        isList = True
+        result = subprocess.run(['cmake', '-h'], capture_output=True)
+        print(re.findall(r'^(Generators.*)', result.stdout.decode('utf-8'),
+                         flags=re.S | re.M)[0])
+    if args.list_toolchains:
+        isList = True
+        if list_of_available_toolchains():
+            print("Toolchains\\n")
+            print('\\n'.join(list_of_available_toolchains()))
+    if isList:
+        # terminate if this was a call for information retrieval
+        sys.exit()
+
+    # run cmake configuration
+    if args.all:
+        all_targets()
+        args.native = False
+
+    if args.toolchain:
+        toolchain_target(args.toolchain.split(','))
+
+    if args.native:
+        native_target()
+
+
+if __name__ == '__main__':
+    main()

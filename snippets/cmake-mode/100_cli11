@@ -1,0 +1,18 @@
+# -*- mode: snippet -*-
+# name: cli11
+# group: module
+# --
+include_guard(GLOBAL)
+
+# CLI11 command line argument parser
+
+# download CLI11
+FetchContent_Declare_Persist(
+  cli11
+  GIT_REPOSITORY "https://github.com/CLIUtils/CLI11.git"
+  GIT_TAG "latest"
+  GIT_PROGRESS ON
+  GIT_SHALLOW ON
+)
+
+FetchContent_MakeAvailable(cli11)
