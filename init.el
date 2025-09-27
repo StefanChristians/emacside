@@ -154,7 +154,11 @@
 
 ;; cc-mode
 ;; major mode for editing C and similar languages
-(use-package cc-mode :ensure nil)
+(use-package cc-mode
+  :ensure nil
+  :bind
+  (:map c-mode-base-map
+        ("<f12>" . ff-find-other-file)))
 
 ;; clang-format+
 ;; Emacs minor mode for automatic clang-format application
