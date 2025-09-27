@@ -2210,22 +2210,35 @@ before calling `ide-common-register-auto-inserts'."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; actions
 
+;; CMake configure: cmake -B
+
+(defvar ide-cpp-configure-last-command nil
+  "Last used interactive configure command.")
+
 (defun ide-cpp-configure (&optional source buildtree)
   "Run CMake configuration and generate compile-commands.json.
 
 SOURCE defaults to project root
 BUILDTREE defaults to `ide-cpp-default-build-directory' under project root"
-  (let* ((source (or source (ide-common-get-project-root)))
-         (buildtree (or buildtree
-                        (f-join source ide-cpp-default-build-directory)))
-         (command (concat
-                   "cmake"
-                   (format " -S \"%s\"" source)
-                   (format " -B \"%s\"" buildtree)
-                   " -D CMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON"
-                   " "))
+  (interactive)
+  (let* ((project-root (if (called-interactively-p 'interactive)
+                           (ide-common-get-current-context-project-root)
+                         (ide-common-get-project-root)))
+         (source (or source project-root))
+         (buildtree (or buildtree (f-join project-root ide-cpp-default-build-directory)))
+         (default-command (concat
+                           "cmake"
+                           (format " -S \"%s\"" source)
+                           (format " -B \"%s\"" buildtree)
+                           " -D CMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON "))
+         ;; Link compile_commands.json
          (link-target (f-join buildtree "compile_commands.json"))
-         (link-name (f-join source "compile_commands.json")))
+         (link-name (f-join source "compile_commands.json"))
+         (command (if (called-interactively-p 'interactive)
+                      (read-shell-command "Configure command: " (or ide-cpp-configure-last-command default-command))
+                    default-command)))
+    ;; remember last command
+    (setq ide-cpp-configure-last-command command)
     ;; create symlink first because compile runs asynchronously in background
     (when (not (f-file? link-target)) (f-touch link-target))
     (when (and (f-file? link-name) (not (f-symlink? link-name)))
@@ -2233,18 +2246,71 @@ BUILDTREE defaults to `ide-cpp-default-build-directory' under project root"
     (make-symbolic-link link-target link-name t)
     (compile command)))
 
+(global-set-key (kbd "S-<f5>") #'ide-cpp-configure)
+
+
+;; CMake compile: cmake --build
+
+(defvar ide-cpp-compile-last-command nil
+  "Last used interactive compile command.")
+
 (defun ide-cpp-compile (&optional buildtree)
-  "Run CMake to compile project in BUILDTREE."
-  (let* ((buildtree (or buildtree
-                        (f-join (ide-common-get-project-root)
-                                ide-cpp-default-build-directory)))
-         (command (concat
-                   "cmake "
-                   " --build"
-                   (format " %s" buildtree)
-                   " ")))
+  "Run CMake to compile project in BUILDTREE.
+
+BUILDTREE defaults to `ide-cpp-default-build-directory' under project root"
+  (interactive)
+  (let* ((project-root (if (called-interactively-p 'interactive)
+                           (ide-common-get-current-context-project-root)
+                         (ide-common-get-project-root)))
+         (buildtree (or buildtree (f-join project-root ide-cpp-default-build-directory)))
+         (default-command (concat "cmake --build " buildtree " "))
+         (command (if (called-interactively-p 'interactive)
+                      (read-shell-command "Compile command: " (or ide-cpp-compile-last-command default-command))
+                    default-command)))
+    (setq ide-cpp-compile-last-command command)
     (compile command)))
-  
+
+(global-set-key (kbd "<f5>") #'ide-cpp-compile)
+
+;; CMake install: cmake --install
+
+(defvar ide-cpp-install-last-command nil
+  "Last used interactive install command.")
+
+(defun ide-cpp-install (&optional buildtree)
+  "Run CMake to install project.
+
+BUILDTREE defaults to `ide-cpp-default-build-directory' under project root"
+  (interactive)
+  (let* ((project-root (ide-common-get-current-context-project-root))
+         (buildtree (or buildtree (f-join project-root ide-cpp-default-build-directory)))
+         (default-command (concat "cmake --install " buildtree))
+         (command (read-shell-command "Install command: " (or ide-cpp-install-last-command default-command))))
+    (setq ide-cpp-install-last-command command)
+    (compile command)))
+
+(global-set-key (kbd "<f6>") #'ide-cpp-install)
+
+;; CMake package: cpack
+
+(defvar ide-cpp-pack-last-command nil
+  "Last used interactive pack command.")
+
+(defun ide-cpp-pack (&optional buildtree)
+  "Run CMake to package project.
+
+BUILDTREE defaults to `ide-cpp-default-build-directory' under project root"
+  (interactive)
+  (let* ((project-root (ide-common-get-current-context-project-root))
+         (buildtree (or buildtree (f-join project-root ide-cpp-default-build-directory)))
+         (config-file (f-join buildtree "CPackConfig.cmake"))
+         (default-command (concat "cpack --config " config-file))
+         (command (read-shell-command "Pack command: " (or ide-cpp-pack-last-command default-command))))
+    (setq ide-cpp-pack-last-command command)
+    (compile command)))
+
+(global-set-key (kbd "<f7>") #'ide-cpp-pack)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; bootstrap

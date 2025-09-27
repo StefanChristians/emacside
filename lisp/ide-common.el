@@ -361,6 +361,19 @@ PATH optional directory to use instead of `default-directory'."
     (let ((default-directory dir))
       (ffip-project-root))))
 
+(defun ide-common-get-current-context-project-root ()
+  "Return project root based on current buffer or Treemacs selection."
+  (let ((path
+         (or
+          ;; Treemacs selected node
+          (when (and (fboundp 'treemacs-current-button)
+                     (treemacs-current-button))
+            (treemacs-button-get (treemacs-current-button) :path))
+          ;; Current buffer file
+          (when buffer-file-name
+            (file-name-directory buffer-file-name)))))
+    (ide-common-get-project-root path)))
+
 (defun ide-common-is-project-root (&optional file)
   "Return non-nil if FILE is in the project root directory."
   (f-equal? (ide-common-active-path file) (ide-common-get-project-root)))
