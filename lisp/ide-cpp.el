@@ -1149,9 +1149,69 @@ excluding those matching `ide-cpp-dynamic-config-excludes`."
                                  ide-cpp-available-cpp-header-extensions)))))
     (seq-map 'f-filename (seq-map 'ide-cpp-real-file-path dynamic-headers))))
 
+(defun ide-cpp-get-args-for-command (command prompt &optional force)
+  "Return saved args for COMMAND in current project.
+
+COMMAND key (e.g. \"build-debug\").
+PROMPT user prompt string
+
+If FORCE (non-nil, typically via `C-u`), prompt for a new value and save it.
+
+Returns a list of args (possibly empty)."
+  (let* ((root (ide-common-get-current-context-project-root))
+         (key (cons root command))
+         (entry (assoc key ide-cpp-cmake-args-alist))
+         (old (cdr entry))
+         (val (if (or force (not old))
+                  (read-string (format "%s args (default: %s): "
+                                       prompt (or old ""))
+                               nil nil old)
+                old)))
+    (unless (equal val old)
+      (setq ide-cpp-cmake-args-alist
+            (assq-delete-all key ide-cpp-cmake-args-alist))
+      (push (cons key val) ide-cpp-cmake-args-alist)
+      (customize-save-variable 'ide-cpp-cmake-args-alist ide-cpp-cmake-args-alist))
+    (if (and val (not (string-empty-p val)))
+        (split-string val)
+      nil)))
+
+(defun ide-cpp-ensure-compile-commands ()
+  "Ensure compile_commands.json is up-to-date.
+
+Ensure project-root/compile_commands.json is a symlink
+to project-root/build/compile_commands.json if present.
+
+If the build-side file exists, make the symlink (replacing any existing file)."
+  (let* ((root (ide-common-get-current-context-project-root))
+         (src (f-join root ide-cpp-default-build-directory "compile_commands.json"))
+         (dst (f-join root "compile_commands.json")))
+    (when  (f-file? src)
+      (when (f-file? dst) (f-delete dst))
+      (make-symbolic-link src dst t))))
+
+(defun ide-cpp-cmake-get-generator ()
+  "Return the CMake generator.
+
+Extract the generator string from the project's cache,
+or read the CMAKE_GENERATOR environment variable."
+  (let* ((root (ide-common-get-current-context-project-root))
+         (cache (f-join root ide-cpp-default-build-directory "CMakeCache.txt" root)))
+    (if (f-file? cache)
+        (with-temp-buffer
+          (insert-file-contents cache)
+          (when (re-search-forward "^CMAKE_GENERATOR:INTERNAL=\\(.*\\)$" nil t)
+            (match-string 1)))
+      (getenv "CMAKE_GENERATOR"))))
+
+(defun ide-cpp-is-multi-config ()
+  "Return non-nil if a multi-config generator is being used."
+  (when-let ((gen (ide-cpp-cmake-get-generator)))
+    (string-match-p "\\(Visual Studio\\|Xcode\\|Multi-Config\\)" gen)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; project management
+;;;; project scaffolding
 
 (cl-defun ide-cpp-create-project
     (&key type format c-std cpp-std
