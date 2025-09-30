@@ -591,7 +591,7 @@ Otherwise return default value or prompt user, depending on USE-DEFAULTS."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; project management
+;;;; project scaffolding
 
 (cl-defun ide-common-create-project (&rest args &key path name descr
                                            vendor contact
