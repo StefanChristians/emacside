@@ -260,6 +260,35 @@
 
 ;;;; packages DDDDDDDDDDDDDDDDDDDDDDDDDD
 
+;; DAP
+;; Emacs loves Debug Adapter Protocol
+(use-package dap-mode
+  :ensure t
+  :after lsp-mode
+  :bind
+  (("<f8>"   . dap-debug)              ;; start session
+   ("C-<f8>" . dap-disconnect)         ;; stop session
+   ("<f9>"   . dap-breakpoint-toggle)  ;; toggle breakpoint
+   ("C-<f10>". dap-next)               ;; step over
+   ("S-<f10>". dap-continue)           ;; continue
+   ("<f11>"  . dap-step-in)            ;; step into
+   ("S-<f11>". dap-step-out))          ;; step out
+  :config
+  (dap-auto-configure-mode)
+  (setq dap-auto-configure-features
+        '(sessions locals breakpoints expressions repl tooltip))
+  ;; auto-restore window layout after debug ends
+  (defun my-dap-restore-layout (_session)
+    "Restore window layout after dap-mode debug session ends."
+    (winner-undo))
+  (add-hook 'dap-terminated-hook #'my-dap-restore-layout)
+  (add-hook 'dap-exited-hook #'my-dap-restore-layout)
+  ;; GDB debugger backend
+  (require 'dap-gdb)
+  ;; LLDB debugger backend
+  (require 'dap-lldb)
+  (setq dap-lldb-debug-program '("lldb-dap")))
+
 ;; dash
 ;; A modern list library for Emacs
 (use-package dash :ensure t)
@@ -358,18 +387,6 @@
            :fetcher github
            :repo "nilsdeppe/emacs-clang-rename"))
 
-;; emacs-gdb
-;; GDB graphical interface for GNU Emacs
-;; drop-in replacement for internal gdb-mi
-(use-package gdb-mi
-  :bind ("C-c d" . gdb-executable)
-  :quelpa (gdb-mi :fetcher git
-                  :url "https://github.com/weirdNox/emacs-gdb.git"
-                  :files ("*.el" "*.c" "*.cpp" "*.h" "*.hpp" "Makefile"))
-  :init
-  (fmakunbound 'gdb)
-  (fmakunbound 'gdb-enable-debug))
-
 ;; embark
 ;; Emacs Mini-Buffer Actions Rooted in Keymaps
 (use-package embark
@@ -383,7 +400,6 @@
 ;; Consult integration for Embark
 (use-package embark-consult
   :ensure t
-  :after (embark consult)
   :hook
   (embark-collect-mode . consult-preview-at-point-mode))
 
@@ -473,7 +489,7 @@
      (if (frame-transparency-state) '(100 100) '(60 30)))))
 
 ;;;; packages GGGGGGGGGGGGGGGGGGGGGGGGGG
-
+  
 ;; gitignore-snippets
 ;; gitignore.io templates for yasnippet
 (use-package gitignore-snippets
@@ -957,6 +973,13 @@
           (lambda () (interactive)(split-window-below) (other-window 1)))
          ([remap split-window-right] .
           (lambda () (interactive)(split-window-right) (other-window 1)))))
+
+;; winner
+;; records changes in window configuration
+(use-package winner
+  :ensure nil
+  :config
+  (winner-mode 1))
 
 ;; winum
 ;; Navigate windows and frames using numbers
