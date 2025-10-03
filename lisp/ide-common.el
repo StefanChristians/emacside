@@ -354,9 +354,9 @@ If DESCENDING is non-nil, sort in descending order."
       (seq-sort-by #'length #'< strings))))
 
 (defun ide-common-get-project-root (&optional path)
-  "Return project root of `default-directory'.
+  "Return project root for PATH.
 
-PATH optional directory to use instead of `default-directory'."
+If PATH is nil, return project root for `default-directory'."
   (let ((dir (or path default-directory)))
     (let ((default-directory dir))
       (ffip-project-root))))
