@@ -7,10 +7,6 @@ include_guard(GLOBAL)
 # generate .vscode/launch.json debug templates
 # for all executable targets
 
-include_guard(GLOBAL)
-
-# Generate .vscode/launch.json launch configuration for debugging
-
 # find GDB debugger
 find_program(GDB_EXECUTABLE gdb)
 if (GDB_EXECUTABLE)
