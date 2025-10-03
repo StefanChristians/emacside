@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: VisualStudioCodeAll
+# key: vscodeall
+# --
+
+### VisualStudioCode ###
+/.vscode/
+*.code-workspace
