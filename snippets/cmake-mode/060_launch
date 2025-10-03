@@ -1,0 +1,149 @@
+# -*- mode: snippet -*-
+# name: launch
+# group: module
+# --
+include_guard(GLOBAL)
+
+# generate .vscode/launch.json debug templates
+# for all executable targets
+
+include_guard(GLOBAL)
+
+# Generate .vscode/launch.json launch configuration for debugging
+
+# find GDB debugger
+find_program(GDB_EXECUTABLE gdb)
+if (GDB_EXECUTABLE)
+  set(GDB_FOUND True)
+  execute_process(
+    COMMAND \$\{GDB_EXECUTABLE\} --version
+    OUTPUT_VARIABLE GDB_VERSION
+  )
+  string(REGEX REPLACE "^.*gdb.* ([0-9]+\\\\.[0-9]+[^ ]*)\\n.*" "\\\\1" GDB_VERSION "\$\{GDB_VERSION\}")
+  message(STATUS "Found GDB: \$\{GDB_EXECUTABLE\} (found version \\"\$\{GDB_VERSION\}\\")")
+endif()
+mark_as_advanced(
+  GDB_EXECUTABLE
+)
+
+# find LLDB debugger
+find_program(LLDB_EXECUTABLE lldb)
+if (LLDB_EXECUTABLE)
+  set(LLDB_FOUND True)
+  execute_process(
+    COMMAND \$\{LLDB_EXECUTABLE\} --version
+    OUTPUT_VARIABLE LLDB_VERSION
+  )
+  string(REGEX REPLACE "^lldb version ([^ ]+)\\n.*" "\\\\1" LLDB_VERSION "\$\{LLDB_VERSION\}")
+  message(STATUS "Found LLDB: \$\{LLDB_EXECUTABLE\} (found version \\"\$\{LLDB_VERSION\}\\")")
+endif()
+mark_as_advanced(
+  LLDB_EXECUTABLE
+)
+
+set(HAS_DEBUGGER (GDB_FOUND OR LLDB_FOUND))
+if(NOT HAS_DEBUGGER)
+  message(STATUS "No debugger found")
+endif()
+
+
+# recursively search for executable targets
+function(collect_project_executables dir result_var)
+  # Collect executables defined in this directory
+  get_property(targets DIRECTORY "\$\{dir\}" PROPERTY BUILDSYSTEM_TARGETS)
+  foreach(tgt IN LISTS targets)
+    get_target_property(type "\$\{tgt\}" TYPE)
+    if(type STREQUAL "EXECUTABLE")
+      # only keep executables under project root
+      get_target_property(srcdir "\$\{tgt\}" SOURCE_DIR)
+      string(FIND "\$\{srcdir\}" "\$\{CMAKE_SOURCE_DIR\}" prefix_pos)
+      if(prefix_pos EQUAL 0)
+        # only keep executables not linked against test frameworks
+        get_target_property(libs "\$\{tgt\}" LINK_LIBRARIES)
+        if(NOT libs MATCHES "gtest" OR lib MATCHES "Catch2" OR lib MATCHES "unit_test_framework")
+          list(APPEND executables "\$\{tgt\}")
+        endif()
+      endif()
+    endif()
+  endforeach()
+
+  # Recurse into subdirectories belonging to *this* project
+  get_property(subdirs DIRECTORY "\$\{dir\}" PROPERTY SUBDIRECTORIES)
+  foreach(subdir IN LISTS subdirs)
+    # filter: keep only subdirs under project root
+    string(FIND "\$\{subdir\}" "\$\{CMAKE_SOURCE_DIR\}" prefix_pos)
+    if(prefix_pos EQUAL 0)
+      collect_project_executables("\$\{subdir\}" executables)
+    endif()
+  endforeach()
+
+  # Return list to caller
+  set("\$\{result_var\}" "\$\{executables\}" PARENT_SCOPE)
+endfunction()
+
+# generate .vscode/launch.json debug templates
+macro(lauch_generate)
+  collect_project_executables("\$\{CMAKE_SOURCE_DIR\}" project_execs)
+  message(STATUS "Project executables: \$\{project_execs\}")
+
+  set(VSCODE_DIR "\$\{CMAKE_SOURCE_DIR\}/.vscode")
+  file(MAKE_DIRECTORY "\$\{VSCODE_DIR\}")
+  set(LAUNCH_JSON "\$\{VSCODE_DIR\}/launch.json")
+
+  set(LAUNCH_CONFIGS "")
+
+  foreach(tgt IN LISTS project_execs)
+    # 1. Debug with gdb
+    if(GDB_FOUND)
+      set(entry "    \{
+        \\"name\\": \\"gdb \$<PATH:RELATIVE_PATH,\$<TARGET_FILE:\$\{tgt\}>,\$\{CMAKE_BINARY_DIR\}>\\",
+        \\"type\\": \\"gdb\\",
+        \\"request\\": \\"launch\\",
+        \\"program\\": \\"\$<TARGET_FILE:\$\{tgt\}>\\",
+        \\"cwd\\": \\"\$<TARGET_FILE_DIR:\$\{tgt\}>\\",
+        \\"args\\": [],
+        \\"env\\": \{\}
+    \}")
+      list(APPEND LAUNCH_CONFIGS "\$\{entry\}")
+    endif()
+
+    # 2. Debug with lldb
+    if(LLDB_FOUND)
+      set(entry "    \{
+        \\"name\\": \\"lldb \$<PATH:RELATIVE_PATH,\$<TARGET_FILE:\$\{tgt\}>,\$\{CMAKE_BINARY_DIR\}>\\",
+        \\"type\\": \\"lldb-vscode\\",
+        \\"request\\": \\"launch\\",
+        \\"program\\": \\"\$<TARGET_FILE:\$\{tgt\}>\\",
+        \\"cwd\\": \\"\$<TARGET_FILE_DIR:\$\{tgt\}>\\",
+        \\"args\\": [],
+        \\"env\\": \{\}
+    \}")
+      list(APPEND LAUNCH_CONFIGS "\$\{entry\}")
+    endif()
+
+    # 1. Run (no debugger)
+    set(entry "    \{
+      \\"name\\": \\"run \$<PATH:RELATIVE_PATH,\$<TARGET_FILE:\$\{tgt\}>,\$\{CMAKE_BINARY_DIR\}>\\",
+      \\"type\\": \\"run\\",
+      \\"request\\": \\"launch\\",
+      \\"program\\": \\"\$<TARGET_FILE:\$\{tgt\}>\\",
+      \\"cwd\\": \\"\$<TARGET_FILE_DIR:\$\{tgt\}>\\",
+      \\"args\\": [],
+      \\"env\\": \{\}
+    \}")
+    list(APPEND LAUNCH_CONFIGS "\$\{entry\}")
+
+  endforeach()
+
+  # Join all configs with commas
+  string(JOIN ",\\n" CONFIG_JSON \$\{LAUNCH_CONFIGS\})
+  # embed in JSON structure
+  set(CONFIG_JSON "\{\\n  \\"version\\": \\"0.2.0\\",\\n  \\"configurations\\": [\\n\$\{CONFIG_JSON\}\\n  ]\\n\}\\n")
+
+  # Write final JSON file
+  file(GENERATE
+    OUTPUT "\$\{LAUNCH_JSON\}"
+    CONTENT "\$\{CONFIG_JSON\}"
+    CONDITION \$<OR:\$<CONFIG:Debug>,\$<STREQUAL:\$\{CMAKE_BUILD_TYPE\},Debug>>
+  )
+endmacro()

@@ -2228,6 +2228,7 @@ before calling `ide-common-register-auto-inserts'."
   '(ide-common-insert-snippet "apidocs")
   '(ide-common-insert-snippet "userdocs")
   "docs_generate()\n"
+  "launch_generate()\n"
   "pack()\n")
 
 (define-skeleton ide-cpp-sub-cmakelists-skeleton
