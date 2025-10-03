@@ -82,7 +82,7 @@ function(collect_project_executables dir result_var)
 endfunction()
 
 # generate .vscode/launch.json debug templates
-macro(lauch_generate)
+macro(launch_generate)
   collect_project_executables("\$\{CMAKE_SOURCE_DIR\}" project_execs)
   message(STATUS "Project executables: \$\{project_execs\}")
 
