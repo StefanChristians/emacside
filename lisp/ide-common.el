@@ -371,7 +371,7 @@ If PATH is nil, return project root for `default-directory'."
             (treemacs-button-get (treemacs-current-button) :path))
           ;; Current buffer file
           (when buffer-file-name
-            (file-name-directory buffer-file-name)))))
+            (f-dirname buffer-file-name)))))
     (ide-common-get-project-root path)))
 
 (defun ide-common-is-project-root (&optional file)
