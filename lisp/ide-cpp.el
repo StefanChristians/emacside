@@ -1828,20 +1828,18 @@ CMAKE-IN CMake dynamic configuration file extension"
     (kill-buffer)))
 
 (cl-defun ide-cpp-create-test-core-and-app-dirs
-    (&key path test-dir test-sfx mock-dir mock-sfx
-          core-dir app-dir ui cpp-src cpp-hdr &allow-other-keys)
+    (&key path test-dir test-sfx mock-dir
+          core-dir app-dir ui cpp-src &allow-other-keys)
   "Create source directory.
 
 PATH parent directory
 TEST-DIR directory for unit tests
 TEST-SFX suffix for test files
 MOCK-DIR directory for mocks
-MOCK-SFX suffix for mock files
 CORE-DIR core directory
 APP-DIR application directory
 UI user interface application
-CPP-SRC C++ source file extension
-CPP-HDR C++ header file extension"
+CPP-SRC C++ source file extension"
   (let* ((project-name (f-filename path))
         (test-core-path (f-join path test-dir core-dir))
         (mock-core-path (f-join test-core-path mock-dir))
@@ -2043,14 +2041,11 @@ CMAKE-DIR directory for CMake modules and scripts."
         (kill-buffer)))))
 
 (cl-defun ide-cpp-create-tools-dir
-    (&key path tools-dir build-dir locs-dir module-base-dir &allow-other-keys)
+    (&key path tools-dir &allow-other-keys)
   "Create Tools directory.
 
 PATH parent directory
-TOOLS-DIR directory for development scripts
-BUILD-DIR directory for out-of-source builds
-LOCS-DIR directory for localization files
-MODULE-BASE-DIR module base directory"
+TOOLS-DIR directory for development scripts"
   (let ((tools-script-path (f-join path tools-dir)))
     (f-mkdir-full-path (f-join path tools-dir))
     (dolist (script (ide-common-available-snippets 'python-mode "buildtool"))
