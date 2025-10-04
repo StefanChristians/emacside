@@ -453,8 +453,8 @@
   :type '(boolean))
 
 (defcustom ide-cpp-dynamic-config-excludes '("onfig\.cmake")
-  "List of regexes of filenames to exclude from dynamic configuration
-because they are handled separately."
+  "List of regexes of filenames to exclude from dynamic configuration.
+They are handled separately."
   :group 'ide-cpp
   :type '(repeat string))
 
@@ -904,7 +904,7 @@ depending on the type of project."
      (ide-common-normalize-classname basename)))
 
 (defun ide-cpp-has-non-default-constructor (file class)
-  "Return true if a non-default constructor is declared for CLASS in FILE."
+  "Return non-nil if a non-default constructor is declared for CLASS in FILE."
   (let ((class-pattern (format "^[[:space:]]*\\(struct\\|class\\).*\\(\\<%s\\>\\)" class))
         (constructor-pattern (format "\\<%s\\>[[:space:]]*(" class))
         (default-constructor-pattern (format "\\<%s\\>[[:space:]]*([[:space:]]*)" class)))
@@ -918,8 +918,10 @@ depending on the type of project."
            (not (s-match default-constructor-pattern (f-read-text file))))))
 
 (defun ide-cpp-default-constructable-class-in-header (&optional file)
-  "Return class declared in FILE's header if no non-default constructor
-is declared, i.e. if it is constructable with the default constructor.
+  "Return class declared in FILE's header.
+
+This is for cases where no non-default constructor is declared,
+i.e. if the object is constructable with the default constructor.
 
 Return nil if no class is found or if no default constructor is available."
   (let* ((path (ide-cpp-real-file-path file))
@@ -964,8 +966,9 @@ Return nil if no class is found or if no default constructor is available."
     module-dirs))
 
 (defun ide-cpp-used-cmake-modules ()
-  "Return a list of existing CMake modules from existing CMake directories,
-excluding scripts which should not be included as modules."
+  "Return a list of existing CMake modules from existing CMake directories.
+
+Exclude scripts which should not be included as modules."
   (let ((dirs (ide-cpp-used-cmake-directories))
         (known-modules (ide-common-available-snippets 'cmake-mode "module"))
         (excluded-modules (ide-common-available-snippets 'cmake-mode "script"))
@@ -1119,13 +1122,14 @@ Dynamic files \(.cpp.in\) are inserted with their post-configuration paths."
       (insert (format "  %s\n" source)))))
 
 (defun ide-cpp-insert-cmake-locales (domain locales)
-  "Insert commands into CMakeLists.txt to compile LOCALES."
+  "Insert commands into CMakeLists.txt to compile LOCALES for DOMAIN."
   (loop-for-each locale locales
     (insert (format "do_if_exists(translations_append %s \"%s\")\n" domain (f-join "\$\{CMAKE_CURRENT_SOURCE_DIR\}" locale)))))
 
 (defun ide-cpp-list-cmake-dynamic-configuration-files (&optional file)
-  "Return list of .in files found in same directory as FILE,
-excluding those matching `ide-cpp-dynamic-config-excludes`."
+  "Return list of .in files found in same directory as FILE.
+
+Exclude those matching `ide-cpp-dynamic-config-excludes'."
   (let* ((parent (f-parent (or file buffer-file-name)))
          (source-files (f--files parent (ide-cpp-is-placeholder-file it)))
          (filenames (seq-map 'f-filename (seq-map 'ide-cpp-real-file-path source-files))))
