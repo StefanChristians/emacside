@@ -14,8 +14,11 @@
 (require 'f)
 (require 's)
 (require 'dash)
+(require 'json)
 (require 'loop)
 (require 'cl-lib)
+(require 'compile)
+(require 'dap-mode)
 (require 'yasnippet)
 
 
