@@ -265,14 +265,6 @@
 (use-package dap-mode
   :ensure t
   :after lsp-mode
-  :bind
-  (("<f8>"   . dap-debug)              ;; start session
-   ("C-<f8>" . dap-disconnect)         ;; stop session
-   ("<f9>"   . dap-breakpoint-toggle)  ;; toggle breakpoint
-   ("C-<f10>". dap-next)               ;; step over
-   ("S-<f10>". dap-continue)           ;; continue
-   ("<f11>"  . dap-step-in)            ;; step into
-   ("S-<f11>". dap-step-out))          ;; step out
   :config
   (dap-auto-configure-mode)
   (setq dap-auto-configure-features
