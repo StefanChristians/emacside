@@ -941,13 +941,6 @@
          "\\.djhtml\\'"
          "\\.html?\\'"))
 
-;; which-func
-;; print current function in mode line
-(use-package which-func
-  :ensure nil
-  :custom
-  (which-function-mode t))
-
 ;; which-key
 ;; Emacs package that displays available keybindings in popup
 (use-package which-key
