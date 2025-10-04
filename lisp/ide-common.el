@@ -359,7 +359,7 @@ If DESCENDING is non-nil, sort in descending order."
 If PATH is nil, return project root for `default-directory'."
   (let ((dir (or path default-directory)))
     (let ((default-directory dir))
-      (ffip-project-root))))
+      (f-canonical (ffip-project-root)))))
 
 (defun ide-common-get-current-context-project-root ()
   "Return project root based on current buffer or Treemacs selection."
