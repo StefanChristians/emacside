@@ -262,9 +262,9 @@
   :ensure t
   :after lsp-mode
   :config
-  (dap-auto-configure-mode)
   (setq dap-auto-configure-features
         '(sessions locals breakpoints expressions repl tooltip))
+  (dap-auto-configure-mode)
   ;; GDB debugger backend
   (require 'dap-gdb)
   ;; LLDB debugger backend
