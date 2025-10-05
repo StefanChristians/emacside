@@ -269,12 +269,6 @@
   (dap-auto-configure-mode)
   (setq dap-auto-configure-features
         '(sessions locals breakpoints expressions repl tooltip))
-  ;; auto-restore window layout after debug ends
-  (defun my-dap-restore-layout (_session)
-    "Restore window layout after dap-mode debug session ends."
-    (winner-undo))
-  (add-hook 'dap-terminated-hook #'my-dap-restore-layout)
-  (add-hook 'dap-exited-hook #'my-dap-restore-layout)
   ;; GDB debugger backend
   (require 'dap-gdb)
   ;; LLDB debugger backend
@@ -951,13 +945,6 @@
           (lambda () (interactive)(split-window-below) (other-window 1)))
          ([remap split-window-right] .
           (lambda () (interactive)(split-window-right) (other-window 1)))))
-
-;; winner
-;; records changes in window configuration
-(use-package winner
-  :ensure nil
-  :config
-  (winner-mode 1))
 
 ;; winum
 ;; Navigate windows and frames using numbers
