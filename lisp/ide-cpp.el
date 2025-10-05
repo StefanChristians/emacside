@@ -1399,6 +1399,41 @@ If FORCE is non-nil, prompt for overrides."
   (clrhash ide-cpp-build-tree-cache)
   (message "Build tree cache cleared."))
 
+(defun ide-cpp-dap-disconnect-all-sessions ()
+  "Disconnect all active DAP sessions."
+  (interactive)
+  (dolist (session (ignore-errors (dap--get-sessions)))
+    (when (dap--session-running session)
+      (dap-disconnect session))))
+
+(defun ide-cpp-dap-wait-and-delete-session (session &optional interval)
+  "Wait until SESSION is no longer running, then delete it.
+INTERVAL is the polling time in seconds (default 0.1)."
+  (let ((interval (or interval 0.1)))
+    (if (not (dap--session-running session))
+        (dap-delete-session session)
+      ;; Session still running → check again later
+      (run-at-time interval nil
+                   (lambda ()
+                     (ide-cpp-dap-wait-and-delete-session session interval))))))
+
+(defun ide-cpp-dap-disconnect-and-delete-session (&optional session)
+  "Safely disconnect and delete a DAP SESSION.
+If SESSION is nil, use the current session."
+  (interactive)
+  (let ((session (or session (dap--cur-session-or-die))))
+    (if (dap--session-running session)
+        (progn
+          (dap-disconnect session)
+          (ide-cpp-dap-wait-and-delete-session session))
+      (dap-delete-session session))))
+
+(defun ide-cpp-dap-disconnect-and-delete-all-sessions ()
+  "Safely disconnect and delete all DAP sessions."
+  (interactive)
+  (dolist (session (ignore-errors (dap--get-sessions)))
+    (ide-cpp-dap-disconnect-and-delete-session session)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; project scaffolding
