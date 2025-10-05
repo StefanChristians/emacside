@@ -146,10 +146,6 @@
   :config
   (beacon-mode t))
 
-;; button
-;; clickable buttons
-(use-package button :ensure nil)
-
 ;;;; packages CCCCCCCCCCCCCCCCCCCCCCCCCC
 
 ;; cc-mode
