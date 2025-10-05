@@ -551,13 +551,6 @@
   :init
   (license-snippets-init))
 
-;; linum
-;; display line numbers in the left margin
-(use-package linum
-  :ensure nil
-  :custom
-  (global-linum-mode nil))
-
 ;; loop
 ;; friendly imperative loop structures for Emacs lisp
 (use-package loop :ensure t)
@@ -1070,7 +1063,7 @@
     ("t" tool-bar-mode "toolbar" :toggle t)
     ("s" scroll-bar-mode "scrollbars" :toggle t)
     ("c" column-number-mode "column number" :toggle t)
-    ("l" global-linum-mode "line numbers" :toggle t)
+    ("l" display-line-numbers-mode "line numbers" :toggle t)
     ("e" (setq-local indicate-empty-lines (not indicate-empty-lines)) "empty lines" :toggle indicate-empty-lines))
 
    "Content"
