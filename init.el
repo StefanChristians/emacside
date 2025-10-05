@@ -813,17 +813,29 @@
   (treemacs-git-commit-diff-mode t)
   ;; display workspace treemacs modeline and use mouse to switch workspace
   (treemacs-user-mode-line-format
-   (with-no-warnings (eval '(progn
-                           (require 'doom-modeline)
-                           (doom-modeline-def-segment treemacs-workspace-name
-                             "Display treemacs workspace."
-                             (propertize (format "%s" (treemacs-workspace->name (treemacs-current-workspace)))
-                                         'face (doom-modeline-face 'doom-modeline-buffer-major-mode)
-                                         'mouse-face 'doom-modeline-highlight
-                                         'help-echo "Workspace name\nmouse-1: Switch workspace"
-                                         'local-map (make-mode-line-mouse-map 'mouse-1 #'treemacs-switch-workspace)))
-                           (doom-modeline-def-modeline 'treemacs '(bar treemacs-workspace-name))
-                           (doom-modeline 'treemacs)))))
+   (with-no-warnings
+     (eval
+      '(progn
+         (require 'doom-modeline)
+         (doom-modeline-def-segment treemacs-workspace-name
+           (let* ((display-name (format-mode-line mode-name))
+                  (is-workspace (string= display-name "Treemacs"))
+                  (label (if is-workspace
+                           (treemacs-workspace->name (treemacs-current-workspace))
+                           display-name)))
+             (if is-workspace
+                 (propertize label
+                         'face (doom-modeline-face 'doom-modeline-buffer-major-mode)
+                         'mouse-face 'doom-modeline-highlight
+                         'help-echo "Treemacs workspace\nmouse-1: Switch workspace"
+                         'local-map (make-mode-line-mouse-map
+                                     'mouse-1
+                                     #'treemacs-switch-workspace))
+               (propertize label
+                           'face (doom-modeline-face 'doom-modeline-buffer-major-mode)
+                           'mouse-face 'doom-modeline-highlight))))
+         (doom-modeline-def-modeline 'treemacs '(bar treemacs-workspace-name))
+         (doom-modeline 'treemacs)))))
   :config
   (treemacs-fringe-indicator-mode 'always)
   (treemacs-git-mode 'deferred)
