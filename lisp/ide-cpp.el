@@ -2741,15 +2741,12 @@ Otherwise reuse last chosen config and overlays for this project."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; hydra menus
 
-(defun ide-cpp-hydra-dispatch ()
-  "Open the appropriate Hydra: project or debug.
-If a debugger is active, open `hydra-ide-cpp-debug';
-otherwise, open `hydra-ide-cpp-project`."
-  (interactive)
-  (if (or (bound-and-true-p dap--cur-session)
-          (and (boundp 'gud-minor-mode) gud-minor-mode)
-          (and (fboundp 'gdb-get-buffer)
-               (buffer-live-p (gdb-get-buffer 'gdb))))
+  (defun ide-cpp-hydra-dispatch ()
+    "Open the appropriate Hydra: project or debug.
+If a debug session is active, open `hydra-ide-cpp-debug';
+otherwise, open `hydra-ide-cpp-project'."
+    (interactive)
+    (if (lsp-session-get-metadata "debug-sessions")
         (hydra-ide-cpp-debug/body)
       (hydra-ide-cpp-project/body)))
 
@@ -2758,31 +2755,42 @@ otherwise, open `hydra-ide-cpp-project`."
    :quit-key "q"
    :color teal)
   ("Configure"
-   (("c" ide-cpp-configure-debug "Configure" :icon (all-the-icons-material "settings"))
-    ("i" ide-cpp-initialize-debug "Initialize" :icon (all-the-icons-material "autorenew"))
-    ("C" ide-cpp-clear-build-tree-cache "Clear cache" :icon (all-the-icons-material "delete")))
+   (("C" (lambda (arg) (interactive "P") (ide-cpp-configure-release arg)) "Configure Release")
+    ("c" (lambda (arg) (interactive "P") (ide-cpp-configure-debug arg)) "Configure Debug")
+    ("I" (lambda (arg) (interactive "P") (ide-cpp-initialize-release arg)) "Initialize Release")
+    ("i" (lambda (arg) (interactive "P") (ide-cpp-initialize-debug arg)) "Initialize Debug"))
    "Build / Install"
-   (("b" ide-cpp-build-debug "Build" :icon (all-the-icons-material "build"))
-    ("I" ide-cpp-install-debug "Install" :icon (all-the-icons-material "file-download"))
-    ("p" ide-cpp-pack-debug "Pack" :icon (all-the-icons-octicon "package")))
+   (("P" (lambda (arg) (interactive "P") (ide-cpp-pack-release arg)) "Pack Release")
+    ("p" (lambda (arg) (interactive "P") (ide-cpp-pack-debug arg)) "Pack Debug")
+    ("N" (lambda (arg) (interactive "P") (ide-cpp-install-release arg)) "Install Release")
+    ("n" (lambda (arg) (interactive "P") (ide-cpp-install-debug arg)) "Install Debug")
+    ("B" (lambda (arg) (interactive "P") (ide-cpp-build-debug arg)) "Build Release")
+    ("b" (lambda (arg) (interactive "P") (ide-cpp-build-debug arg)) "Build Debug"))
    "Run / Debug"
-   (("r" ide-cpp-execute "Run" :icon (all-the-icons-faicon "play"))
-    ("d" ide-cpp-debug "Debug" :icon (all-the-icons-faicon "bug")))))
+   (("r" (lambda (arg) (interactive "P") (ide-cpp-execute arg)) "Run" :color blue)
+    ("d" (lambda (arg) (interactive "P") (ide-cpp-debug arg)) "Debug" :color blue))
+   "Breakpoints"
+   (("T" dap-breakpoint-delete-all "Delete All")
+    ("t" dap-breakpoint-toggle "toggle"))
+   "Session"
+   (("X" ide-cpp-dap-disconnect-and-delete-all-sessions "Terminate All" :color blue)
+    ("x" ide-cpp-dap-disconnect-all-sessions "Disconnect All"))))
 
 (pretty-hydra-define hydra-ide-cpp-debug
   (:title (format "%s C++ Debug Controls" (all-the-icons-faicon "bug" :face 'error))
    :quit-key "q"
    :color amaranth)
   ("Stepping"
-   (("n" dap-next "Next" :icon (all-the-icons-material "redo"))
-    ("i" dap-step-in "Step In" :icon (all-the-icons-material "subdirectory-arrow-right"))
-    ("o" dap-step-out "Step Out" :icon (all-the-icons-material "call-missed"))
-    ("c" dap-continue "Continue" :icon (all-the-icons-material "play-arrow")))
+   (("n" dap-next "Next")
+    ("i" dap-step-in "Step In")
+    ("o" dap-step-out "Step Out")
+    ("c" dap-continue "Continue" :color blue))
    "Breakpoints"
-   (("t" dap-breakpoint-toggle "Toggle" :icon (all-the-icons-material "adjust"))
-    ("a" dap-breakpoint-delete-all "Delete All" :icon (all-the-icons-material "delete-forever")))
+   (("t" dap-breakpoint-toggle "Toggle")
+    ("a" dap-breakpoint-delete-all "Delete All"))
    "Session"
-   (("q" nil "Quit" :icon (all-the-icons-material "close")))))
+   (("X" ide-cpp-dap-disconnect-and-delete-session "Terminate" :color blue)
+    ("x" dap-disconnect "Disconnect"))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
