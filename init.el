@@ -1124,7 +1124,9 @@
 
 (use-package ide-cpp
   :custom
-  (ide-common-default-project-parent "~/development/sandbox/"))
+  (ide-common-default-project-parent "~/development/sandbox/")
+  :bind
+  (("C-c c" . ide-cpp-hydra-dispatch)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
