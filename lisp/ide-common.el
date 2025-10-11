@@ -536,6 +536,19 @@ ARGS optional arguments for filling yasnippet fields"
            (kill-buffer buf))
          result)))))
 
+(defun ide-common-read-file (file)
+  "Read object from FILE, or nil."
+  (when (f-exists? file)
+    (with-temp-buffer
+      (insert-file-contents file)
+      (read (current-buffer)))))
+
+(defun ide-common-write-file (file data)
+  "Write DATA to FILE."
+  (f-mkdir (f-dirname file))
+  (with-temp-file file
+    (prin1 data (current-buffer))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; user interaction
@@ -880,6 +893,12 @@ ACTIONS list of actions to execute"
       (yas-activate-extra-mode mode)
       (yas-expand-snippet (yas-lookup-snippet snippet mode t))
       (yas-exit-all-snippets))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; extensions
+
+(use-package ide-common-env)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

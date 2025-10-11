@@ -2741,7 +2741,7 @@ Otherwise reuse last chosen config and overlays for this project."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; hydra menus
 
-  (defun ide-cpp-hydra-dispatch ()
+(defun ide-cpp-hydra-dispatch ()
     "Open the appropriate Hydra: project or debug.
 If a debug session is active, open `hydra-ide-cpp-debug';
 otherwise, open `hydra-ide-cpp-project'."
@@ -2751,10 +2751,13 @@ otherwise, open `hydra-ide-cpp-project'."
       (hydra-ide-cpp-project/body)))
 
 (pretty-hydra-define hydra-ide-cpp-project
-  (:title (format "%s C++ Build & Run" (all-the-icons-material "build" :face 'success))
+  (:title (format "%s C++ Build & Run" (all-the-icons-material "build"))
    :quit-key "q"
    :color teal)
-  ("Configure"
+  ("Environment"
+   (("E" ide-common-env-edit "Edit Environment")
+   ("e" ide-common-env-select-profile "Select Environment"))
+  "Configure"
    (("C" (lambda (arg) (interactive "P") (ide-cpp-configure-release arg)) "Configure Release")
     ("c" (lambda (arg) (interactive "P") (ide-cpp-configure-debug arg)) "Configure Debug")
     ("I" (lambda (arg) (interactive "P") (ide-cpp-initialize-release arg)) "Initialize Release")
@@ -2777,7 +2780,7 @@ otherwise, open `hydra-ide-cpp-project'."
     ("x" ide-cpp-dap-disconnect-all-sessions "Disconnect All"))))
 
 (pretty-hydra-define hydra-ide-cpp-debug
-  (:title (format "%s C++ Debug Controls" (all-the-icons-faicon "bug" :face 'error))
+  (:title (format "%s C++ Debug Controls" (all-the-icons-material "bug_report"))
    :quit-key "q"
    :color amaranth)
   ("Stepping"
