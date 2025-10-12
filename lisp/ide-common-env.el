@@ -341,8 +341,6 @@ VARS is an alist of (NAME . VALUE).")
 (defun ide-common-env-clone-profile ()
   "Clone the profile currently open in the editor buffer and switch to it."
   (interactive)
-  (unless ide-common-env-current-project
-    (user-error "No project in current buffer"))
   (let* ((root ide-common-env-current-project)
          (source ide-common-env-current-profile)
          (default (concat source "-copy"))
@@ -367,8 +365,6 @@ VARS is an alist of (NAME . VALUE).")
 (defun ide-common-env-rename-profile ()
   "Rename the profile currently open in the editor buffer."
   (interactive)
-  (unless ide-common-env-current-project
-    (user-error "No project in current buffer"))
   (let* ((root ide-common-env-current-project)
          (source ide-common-env-current-profile)
          (dest (read-string (format "Rename profile %s to: " source))))
@@ -394,8 +390,6 @@ VARS is an alist of (NAME . VALUE).")
 (defun ide-common-env-delete-profile ()
   "Delete the profile currently open in the editor buffer."
   (interactive)
-  (unless ide-common-env-current-project
-    (user-error "No project in current buffer"))
   (let* ((root ide-common-env-current-project)
          (source ide-common-env-current-profile))
     (when (yes-or-no-p (format "Are you sure you want to delete %s? " source))
@@ -418,8 +412,6 @@ VARS is an alist of (NAME . VALUE).")
 (defun ide-common-env-delete-all-profiles ()
   "Delete all profiles for current project and create new default profile."
   (interactive)
-  (unless ide-common-env-current-project
-    (user-error "No project in current buffer"))
   (let* ((root ide-common-env-current-project))
     (when (yes-or-no-p (format "Are you sure you want to delete all profiles for %s? " (f-filename root)))
 
