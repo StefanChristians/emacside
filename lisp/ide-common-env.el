@@ -194,7 +194,7 @@ VARS is an alist of (NAME . VALUE).")
 ;;;; actions
 
 (defun ide-common-env-select-profile (&optional project-root)
-  "Select or create a profile for PROJECT-ROOT with inline variable annotations."
+  "Select or create a profile for PROJECT-ROOT."
   (interactive)
   (ide-common-env-load-cache)
   (let* ((root (or project-root
