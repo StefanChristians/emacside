@@ -133,7 +133,6 @@ VARS is an alist of (NAME . VALUE).")
          (profiles (ide-common-env-list-profile-names root))
          (max-len (apply #'max (mapcar #'length profiles)))
          (vars (ide-common-env-get-profile root cand)))
-    (message completion-extra-properties)
     (when vars
       (let* ((vars-str
               (mapconcat
