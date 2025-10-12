@@ -404,7 +404,7 @@ VARS is an alist of (NAME . VALUE).")
       (ide-common-env-unset-profile root source)
 
       ;; select next profile
-      (setq ide-common-env-current-profile (ide-common-env-select-profile))
+      (setq ide-common-env-current-profile (ide-common-env-select-profile root))
 
       ;; update last used and current profile
       (ide-common-env-set-last-profile root ide-common-env-current-profile)
