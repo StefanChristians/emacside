@@ -76,7 +76,7 @@ VARS is an alist of (NAME . VALUE).")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; getters and setters
+;;;; environment getters and setters
 
 (defun ide-common-env-get-profiles (project-root)
   "Return profile alist for PROJECT-ROOT."
@@ -109,6 +109,10 @@ VARS is an alist of (NAME . VALUE).")
 (defun ide-common-env-list-profile-names (project-root)
   "Return list of profile names for PROJECT-ROOT."
   (or (mapcar #'car (ide-common-env-get-profiles project-root)) '("default")))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; last used profile getters and setters
 
 (defun ide-common-env-get-last-profile (project-root)
   "Return last used profile name for PROJECT-ROOT."
