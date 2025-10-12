@@ -481,6 +481,7 @@ VARS is an alist of (NAME . VALUE).")
     (define-key map (kbd "D") #'ide-common-env-delete-profile)
     (define-key map (kbd "C-D") #'ide-common-env-delete-all-profiles)
     (define-key map (kbd "q") #'ide-common-env-quit)
+    (define-key map (kbd "C-c C-c") #'ide-common-env-quit)
     (define-key map (kbd "C-c C-k") #'ide-common-env-quit)
     map))
 
