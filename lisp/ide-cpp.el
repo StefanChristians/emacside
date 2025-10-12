@@ -2751,7 +2751,11 @@ otherwise, open `hydra-ide-cpp-project'."
       (hydra-ide-cpp-project/body)))
 
 (pretty-hydra-define hydra-ide-cpp-project
-  (:title (format "%s C++ Build & Run" (all-the-icons-material "build"))
+  (:title (concat
+           (format "%s C++ Build & Run\n" (all-the-icons-material "build"))
+           (propertize
+            (substitute-command-keys
+             "Press `\\[universal-argument]' to modify arguments before executing") 'face 'shadow))
    :quit-key ("q" "ESC")
    :color teal)
   ("Environment"
