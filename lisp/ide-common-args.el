@@ -151,14 +151,14 @@ Each entry is (PROFILE-NAME . ARGS-LIST)."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; list ←→ string conversions
+;;;; format conversions
 
-(defun ide-common-args-to-list (project-root command profile text)
+(defun ide-common-args-store-string-as-list (project-root command profile text)
   "Convert TEXT to args list in PROFILE of COMMAND under PROJECT-ROOT."
   (ide-common-args-set-profile project-root command profile
                                (split-string-shell-command text)))
 
-(defun ide-common-args-to-string (project-root command profile)
+(defun ide-common-args-load-as-string (project-root command profile)
   "Convert args list in PROFILE of COMMAND under PROJECT-ROOT to text."
   (combine-and-quote-strings (ide-common-args-get-profile project-root command profile)))
 
@@ -295,7 +295,7 @@ and project, with syntax-aware coloring."
 
 (defun ide-common-args-refresh ()
   "Refresh buffer."
-  (let* ((args-str (ide-common-args-to-string ide-common-args-current-project
+  (let* ((args-str (ide-common-args-load-as-string ide-common-args-current-project
                                               ide-common-args-current-command
                                               ide-common-args-current-profile)))
       (erase-buffer)
@@ -304,7 +304,7 @@ and project, with syntax-aware coloring."
 
 (defun ide-common-args-save-buffer ()
   "Save buffer to arguments cache."
-  (ide-common-args-to-list ide-common-args-current-project
+  (ide-common-args-store-string-as-list ide-common-args-current-project
                            ide-common-args-current-command
                            ide-common-args-current-profile
                            (buffer-string))
