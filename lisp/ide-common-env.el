@@ -333,7 +333,7 @@ VARS is an alist of (NAME . VALUE).")
   (let ((new-profile (ide-common-env-select-profile ide-common-env-current-project)))
     (setq ide-common-env-current-profile new-profile)
     (message "Switched to profile: %s" new-profile)
-    (rename-buffer (format "*Env: %s [%s]*"
+    (rename-buffer (format "*%s [%s]*"
                            (f-filename ide-common-env-current-project)
                            ide-common-env-current-profile) t)
     (ide-common-env-refresh)))
@@ -358,7 +358,7 @@ VARS is an alist of (NAME . VALUE).")
     (ide-common-env-set-last-profile root dest)
     (setq ide-common-env-current-profile dest)
     (message "Cloned and switched to profile %s → %s" source dest)
-    (rename-buffer (format "*Env: %s [%s]*"
+    (rename-buffer (format "*%s [%s]*"
                            (f-filename root)
                            ide-common-env-current-profile) t)
     (ide-common-env-refresh)
@@ -385,7 +385,7 @@ VARS is an alist of (NAME . VALUE).")
     (ide-common-env-set-last-profile root dest)
     (setq ide-common-env-current-profile dest)
     (message "Renamed profile %s → %s" source dest)
-    (rename-buffer (format "*Env: %s [%s]*"
+    (rename-buffer (format "*%s [%s]*"
                            (f-filename root)
                            ide-common-env-current-profile) t)
     (ide-common-env-refresh)
@@ -409,7 +409,7 @@ VARS is an alist of (NAME . VALUE).")
       ;; update last used and current profile
       (ide-common-env-set-last-profile root ide-common-env-current-profile)
       (message "Deleted and switched to profile %s → %s" source ide-common-env-current-profile)
-      (rename-buffer (format "*Env: %s [%s]*"
+      (rename-buffer (format "*%s [%s]*"
                              (f-filename root)
                              ide-common-env-current-profile) t)
       (ide-common-env-refresh))
@@ -433,7 +433,7 @@ VARS is an alist of (NAME . VALUE).")
       ;; update last used and current profile
       (ide-common-env-set-last-profile root ide-common-env-current-profile)
       (message "Deleted all profiles, switched to %s" ide-common-env-current-profile)
-      (rename-buffer (format "*Env: %s [%s]*"
+      (rename-buffer (format "*%s [%s]*"
                              (f-filename root)
                              ide-common-env-current-profile) t)
       (ide-common-env-refresh))
