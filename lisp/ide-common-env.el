@@ -449,23 +449,6 @@ VARS is an alist of (NAME . VALUE).")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; key bindings
 
-(defun ide-common-env-setup-keymap ()
-  "Define keymap for `ide-common-env-mode'."
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "a") #'ide-common-env-add)
-    (define-key map (kbd "e") #'ide-common-env-edit-value)
-    (define-key map (kbd "r") #'ide-common-env-edit-name)
-    (define-key map (kbd "d") #'ide-common-env-delete)
-    (define-key map (kbd "P") #'ide-common-env-change-profile)
-    (define-key map (kbd "R") #'ide-common-env-rename-profile)
-    (define-key map (kbd "C") #'ide-common-env-clone-profile)
-    (define-key map (kbd "D") #'ide-common-env-delete-profile)
-    (define-key map (kbd "C-D") #'ide-common-env-delete-all-profiles)
-    (define-key map (kbd "q") #'ide-common-env-quit)
-    map))
-
-(setq ide-common-env-mode-map (ide-common-env-setup-keymap))
-
 (pretty-hydra-define hydra-ide-common-env
   (:title  (format "%s Environment Profiles" (all-the-icons-material "nature"))
           :color teal
@@ -480,9 +463,28 @@ VARS is an alist of (NAME . VALUE).")
    (("a" ide-common-env-add "Add variable")
     ("e" ide-common-env-edit-value "Edit value")
     ("r" ide-common-env-edit-name "Rename variable")
-    ("d" ide-common-env-delete "Delete variable"))))
+    ("d" ide-common-env-delete "Delete variable"))
+   "Session"
+   (("x" ide-common-env-quit "Close" :color blue))))
 
-(global-set-key (kbd "C-c e") #'hydra-ide-common-env/body)
+(defun ide-common-env-setup-keymap ()
+  "Define keymap for `ide-common-env-mode'."
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c e") #'hydra-ide-common-env/body)
+    (define-key map (kbd "a") #'ide-common-env-add)
+    (define-key map (kbd "e") #'ide-common-env-edit-value)
+    (define-key map (kbd "r") #'ide-common-env-edit-name)
+    (define-key map (kbd "d") #'ide-common-env-delete)
+    (define-key map (kbd "P") #'ide-common-env-change-profile)
+    (define-key map (kbd "R") #'ide-common-env-rename-profile)
+    (define-key map (kbd "C") #'ide-common-env-clone-profile)
+    (define-key map (kbd "D") #'ide-common-env-delete-profile)
+    (define-key map (kbd "C-D") #'ide-common-env-delete-all-profiles)
+    (define-key map (kbd "q") #'ide-common-env-quit)
+    (define-key map (kbd "C-c C-k") #'ide-common-env-quit)
+    map))
+
+(setq ide-common-env-mode-map (ide-common-env-setup-keymap))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
