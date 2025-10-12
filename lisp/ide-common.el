@@ -899,6 +899,7 @@ ACTIONS list of actions to execute"
 ;;;; extensions
 
 (use-package ide-common-env)
+(use-package ide-common-args)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
