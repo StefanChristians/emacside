@@ -408,7 +408,7 @@ VARS is an alist of (NAME . VALUE).")
 
       ;; update last used and current profile
       (ide-common-env-set-last-profile root ide-common-env-current-profile)
-      (message "Deleted profile %s, switched to %s" source ide-common-env-current-profile)
+      (message "Deleted and switched to profile %s → %s" source ide-common-env-current-profile)
       (rename-buffer (format "*Env: %s [%s]*"
                              (f-filename root)
                              ide-common-env-current-profile) t)
