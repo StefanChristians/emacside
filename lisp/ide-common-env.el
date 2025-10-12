@@ -125,10 +125,11 @@ VARS is an alist of (NAME . VALUE).")
 
 (defun marginalia-environment-profile-plain (cand)
   "Annotate environment profile CAND with dim italic text."
-  (let* ((root (ide-common-get-current-context-project-root))
+  (let* ((root (plist-get completion-extra-properties :project-root))
          (profiles (ide-common-env-list-profile-names root))
          (max-len (apply #'max (mapcar #'length profiles)))
          (vars (ide-common-env-get-profile root cand)))
+    (message completion-extra-properties)
     (when vars
       (let* ((vars-str
               (mapconcat
@@ -148,7 +149,7 @@ VARS is an alist of (NAME . VALUE).")
 
 (defun marginalia-environment-profile-colored (cand)
   "Annotate environment profile CAND with color-coded variables."
-  (let* ((root (ide-common-get-current-context-project-root))
+  (let* ((root (plist-get completion-extra-properties :project-root))
          (profiles (ide-common-env-list-profile-names root))
          (max-len (apply #'max (mapcar #'length profiles)))
          (vars (ide-common-env-get-profile root cand)))
@@ -197,7 +198,7 @@ VARS is an alist of (NAME . VALUE).")
          (profiles (sort (ide-common-env-list-profile-names root) #'string<))
          (default  (ide-common-env-get-last-profile root))
          ;; pass category to completion frameworks via completion-extra-properties
-         (completion-extra-properties '(:category environment-profile))
+         (completion-extra-properties `(:category environment-profile :project-root ,root))
          (choice (completing-read
                   (format "Select environment profile for %s: "
                           (f-filename root))
