@@ -239,7 +239,7 @@ VARS is an alist of (NAME . VALUE).")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; UI (tabulated list)
 
-(define-derived-mode ide-common-env-mode tabulated-list-mode "Env"
+(define-derived-mode ide-common-env-mode tabulated-list-mode "Environment"
   "Major mode for editing project environment profiles."
   (setq tabulated-list-format [("Variable" 30 t) ("Value" 60 t)])
   (setq tabulated-list-padding 2)
