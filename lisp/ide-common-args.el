@@ -450,7 +450,7 @@ and project, with syntax-aware coloring."
 (pretty-hydra-define hydra-ide-common-args
   (:title  (format "%s Argument Profiles" (all-the-icons-material "list_alt"))
           :color teal
-          :quit-key "q")
+          :quit-key ("q" "ESC"))
   ("Profiles"
    (("P" ide-common-args-save-and-change-profile "Change profile")
     ("R" ide-common-args-save-and-rename-profile "Rename profile")

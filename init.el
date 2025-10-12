@@ -1025,7 +1025,7 @@
 
 ;; dispatcher
 (pretty-hydra-define dispatcher
-  (:title (format "%s Main Dispatcher" (all-the-icons-faicon "keyboard-o"))
+  (:title (format "%s Main Dispatcher" (all-the-icons-material "keyboard"))
           :exit t :foreign-keys warn :quit-key ("q" "ESC"))
   ("Menus"
    (("a" appearance/body "appearance...")
@@ -1039,7 +1039,7 @@
 
 ;; appearance
 (pretty-hydra-define appearance
-  (:title (format "%s Appearance" (all-the-icons-faicon "desktop"))
+  (:title (format "%s Appearance" (all-the-icons-material "desktop_windows"))
           :exit nil :foreign-keys warn :quit-key ("q" "ESC"))
   ("Theme"
    (("d" dark-theme-toggle "dark mode" :toggle t)
@@ -1070,7 +1070,7 @@
 
 ;; behavior
 (pretty-hydra-define behavior
-  (:title (format "%s Behavior" (all-the-icons-faicon "cogs"))
+  (:title (format "%s Behavior" (all-the-icons-material "engineering"))
           :exit nil :foreign-keys warn :quit-key ("q" "ESC"))
   ("White space"
    (("f" (setq-local require-final-newline (not require-final-newline)) "add final newline" :toggle require-final-newline)
@@ -1078,7 +1078,7 @@
 
 ;; spellchecker
 (pretty-hydra-define spellchecker
-  (:title (format "%s Spellchecker" (all-the-icons-faicon "check-circle-o"))
+  (:title (format "%s Spellchecker" (all-the-icons-material "spellcheck"))
           :exit nil :foreign-keys nil :quit-key ("q" "ESC"))
   ("Check Spelling"
    (("b" flyspell-buffer "buffer")
@@ -1091,7 +1091,7 @@
 
 ;; folding
 (pretty-hydra-define folding
-  (:title (format "%s Folding" (all-the-icons-faicon "level-down"))
+  (:title (format "%s Folding" (all-the-icons-material "subdirectory_arrow_right"))
           :exit nil :foreign-keys nil :quit-key ("q" "ESC"))
   ("Fold Code"
    (("t" origami-recursively-toggle-node "toggle")
@@ -1105,7 +1105,7 @@
 
 ;; inflection
 (pretty-hydra-define inflection
-  (:title (format "%s Inflection" (all-the-icons-faicon "language"))
+  (:title (format "%s Inflection" (all-the-icons-material "match_case"))
           :exit nil :foreign-keys nil :quit-key ("q" "ESC"))
   ("String inflection"
    (("i" string-inflection-all-cycle "cycle")

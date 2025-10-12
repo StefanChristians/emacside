@@ -451,7 +451,7 @@ VARS is an alist of (NAME . VALUE).")
 (pretty-hydra-define hydra-ide-common-env
   (:title  (format "%s Environment Profiles" (all-the-icons-material "nature"))
           :color teal
-          :quit-key "q")
+          :quit-key ("q" "ESC"))
   ("Profiles"
    (("P" ide-common-env-change-profile "Change profile")
     ("R" ide-common-env-rename-profile "Rename profile")

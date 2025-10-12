@@ -2752,7 +2752,7 @@ otherwise, open `hydra-ide-cpp-project'."
 
 (pretty-hydra-define hydra-ide-cpp-project
   (:title (format "%s C++ Build & Run" (all-the-icons-material "build"))
-   :quit-key "q"
+   :quit-key ("q" "ESC")
    :color teal)
   ("Environment"
    (("E" ide-common-env-edit "Edit Environment")
@@ -2781,7 +2781,7 @@ otherwise, open `hydra-ide-cpp-project'."
 
 (pretty-hydra-define hydra-ide-cpp-debug
   (:title (format "%s C++ Debug Controls" (all-the-icons-material "bug_report"))
-   :quit-key "q"
+   :quit-key ("q" "ESC")
    :color amaranth)
   ("Stepping"
    (("n" dap-next "Next")
