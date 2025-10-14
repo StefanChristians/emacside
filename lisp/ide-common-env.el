@@ -125,6 +125,15 @@ VARS is an alist of (NAME . VALUE).")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; conversions
+
+(defun ide-common-env-load-as-list (project-root profile)
+  "Convert alist in PROFILE under PROJECT-ROOT to list."
+  (mapcar (lambda (pair) (format "%s=%s" (car pair) (cdr pair)))
+          (ide-common-env-get-profile project-root profile)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; annotations for completion
 
 (defun marginalia-environment-profile-plain (cand)

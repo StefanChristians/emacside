@@ -151,16 +151,24 @@ Each entry is (PROFILE-NAME . ARGS-LIST)."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; format conversions
+;;;; conversions
 
 (defun ide-common-args-store-string-as-list (project-root command profile text)
   "Convert TEXT to args list in PROFILE of COMMAND under PROJECT-ROOT."
   (ide-common-args-set-profile project-root command profile
                                (split-string-shell-command text)))
 
-(defun ide-common-args-load-as-string (project-root command profile)
+(defun ide-common-args-load-as-display-string (project-root command profile)
   "Convert args list in PROFILE of COMMAND under PROJECT-ROOT to text."
-  (combine-and-quote-strings (ide-common-args-get-profile project-root command profile)))
+  (combine-and-quote-strings (ide-common-args-get-profile project-root
+                                                          command
+                                                          profile)))
+
+(defun ide-common-args-load-as-shell-string (project-root command profile)
+  "Convert args list in PROFILE of COMMAND under PROJECT-ROOT to shell string."
+  (mapconcat #'shell-quote-argument (ide-common-args-get-profile project-root
+                                                                 command
+                                                                 profile)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -271,7 +279,7 @@ and project, with syntax-aware coloring."
   (ide-common-args-load-cache)
   (let* ((root (or project-root (ide-common-get-current-context-project-root)))
          (profile (ide-common-args-get-last-profile root command))
-         (buf-name (format "Args: %s→%s [%s]"
+         (buf-name (format "*%s→%s [%s]*"
                            (f-filename root) command profile)))
     (with-current-buffer (get-buffer-create buf-name)
       (ide-common-args-mode)
@@ -295,9 +303,10 @@ and project, with syntax-aware coloring."
 
 (defun ide-common-args-refresh ()
   "Refresh buffer."
-  (let* ((args-str (ide-common-args-load-as-string ide-common-args-current-project
-                                              ide-common-args-current-command
-                                              ide-common-args-current-profile)))
+  (let* ((args-str (ide-common-args-load-as-display-string
+                    ide-common-args-current-project
+                    ide-common-args-current-command
+                    ide-common-args-current-profile)))
       (erase-buffer)
       (insert args-str)
       (goto-char (point-max))))
@@ -318,7 +327,7 @@ and project, with syntax-aware coloring."
                       ide-common-args-current-project)))
     (setq ide-common-args-current-profile new-profile)
     (message "Switched to profile: %s" new-profile)
-    (rename-buffer (format "Args: %s→%s [%s]"
+    (rename-buffer (format "*%s→%s [%s]*"
                            (f-filename ide-common-args-current-project)
                            ide-common-args-current-command
                            ide-common-args-current-profile) t)
@@ -349,7 +358,7 @@ and project, with syntax-aware coloring."
     (ide-common-args-set-last-profile root command dest)
     (setq ide-common-args-current-profile dest)
     (message "Cloned and switched to profile %s → %s" source dest)
-    (rename-buffer (format "Args: %s→%s [%s]" (f-filename root) command dest) t)
+    (rename-buffer (format "*%s→%s [%s]*" (f-filename root) command dest) t)
     (ide-common-args-refresh)
     dest))
 
@@ -379,7 +388,7 @@ and project, with syntax-aware coloring."
     (ide-common-args-set-last-profile root command dest)
     (setq ide-common-args-current-profile dest)
     (message "Renamed profile %s → %s" source dest)
-    (rename-buffer (format "Args: %s→%s [%s]" (f-filename root) command dest) t)
+    (rename-buffer (format "*%s→%s [%s]*" (f-filename root) command dest) t)
     (ide-common-args-refresh)
     dest))
 
@@ -407,7 +416,7 @@ and project, with syntax-aware coloring."
       ;; update last used and current profile
       (ide-common-args-set-last-profile root command ide-common-args-current-profile)
       (message "Deleted and switched to profile %s → %s" source ide-common-args-current-profile)
-      (rename-buffer (format "Args: %s→%s [%s]" (f-filename root) command
+      (rename-buffer (format "*%s→%s [%s]*" (f-filename root) command
                              ide-common-args-current-profile) t)
       (ide-common-args-refresh))
     ide-common-args-current-profile))
@@ -429,7 +438,7 @@ and project, with syntax-aware coloring."
       ;; update last used and current profile
       (ide-common-args-set-last-profile root command ide-common-args-current-profile)
       (message "Deleted all profiles, switched to %s" ide-common-args-current-profile)
-      (rename-buffer (format "Args: %s→%s [%s]" (f-filename root) command
+      (rename-buffer (format "*%s→%s [%s]*" (f-filename root) command
                              ide-common-args-current-profile) t)
       (ide-common-args-refresh))
     ide-common-args-current-profile))
