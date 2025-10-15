@@ -243,6 +243,12 @@ VARS is an alist of (NAME . VALUE).")
       (ide-common-env-refresh)
       (switch-to-buffer (current-buffer)))))
 
+(defun ide-common-env-select_and_edit (&optional project-root)
+  "Select or create and edit a profile for COMMAND in PROJECT-ROOT."
+  (interactive)
+  (let ((choice (ide-common-env-select-profile project-root)))
+    (when choice (ide-common-env-edit project-root))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; UI (tabulated list)

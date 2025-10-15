@@ -289,6 +289,12 @@ and project, with syntax-aware coloring."
       (ide-common-args-refresh)
       (switch-to-buffer (current-buffer)))))
 
+(defun ide-common-args-select_and_edit (command &optional project-root)
+  "Select or create and edit a profile for COMMAND in PROJECT-ROOT."
+  (interactive)
+  (let ((choice (ide-common-args-select-profile command project-root)))
+    (when choice (ide-common-args-edit command project-root))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; UI (text buffer)
