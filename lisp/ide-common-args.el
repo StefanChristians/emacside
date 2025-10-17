@@ -6,6 +6,7 @@
 ;; SPDX-License-Identifier: MIT
 
 ;;; Commentary:
+
 ;; Manage per-command argument profiles.
 ;;
 ;; Each command can have multiple named profiles,
