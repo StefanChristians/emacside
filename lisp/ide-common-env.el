@@ -11,10 +11,6 @@
 ;;
 ;; Each project can have multiple named profiles,
 ;; each containing a list of NAME=VALUE pairs.
-;;
-;; Two caches are maintained:
-;;  - ~/.emacs.d/.cache/ide-env.el → project profiles and variables
-;;  - ~/.emacs.d/.cache/ide-env-last.el → last selected profile per project
 
 ;;; Code:
 

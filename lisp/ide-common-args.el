@@ -11,10 +11,6 @@
 ;;
 ;; Each command can have multiple named profiles,
 ;; each containing a list of arguments.
-;;
-;; Two caches are maintained:
-;;  - ~/.emacs.d/.cache/ide-args.el → command profiles and arguments
-;;  - ~/.emacs.d/.cache/ide-args-last.el → last selected profile per command
 
 ;;; Code:
 
