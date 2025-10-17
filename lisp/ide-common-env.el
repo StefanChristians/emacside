@@ -128,10 +128,11 @@ VARS is an alist of (NAME . VALUE).")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; conversions
 
-(defun ide-common-env-load-as-list (project-root profile)
+(defun ide-common-env-load-as-list (project-root &optional profile)
   "Convert alist in PROFILE under PROJECT-ROOT to list."
-  (mapcar (lambda (pair) (format "%s=%s" (car pair) (cdr pair)))
-          (ide-common-env-get-profile project-root profile)))
+  (let ((profile (or profile (ide-common-env-get-last-profile project-root))))
+    (mapcar (lambda (pair) (format "%s=%s" (car pair) (cdr pair)))
+          (ide-common-env-get-profile project-root profile))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -244,11 +245,10 @@ VARS is an alist of (NAME . VALUE).")
       (ide-common-env-refresh)
       (switch-to-buffer (current-buffer)))))
 
-(defun ide-common-env-select_and_edit (&optional project-root)
+(defun ide-common-env-select-and-edit (&optional project-root)
   "Select or create and edit a profile for COMMAND in PROJECT-ROOT."
-  (interactive)
-  (let ((choice (ide-common-env-select-profile project-root)))
-    (when choice (ide-common-env-edit project-root))))
+  (when (ide-common-env-select-profile project-root)
+    (ide-common-env-edit project-root)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

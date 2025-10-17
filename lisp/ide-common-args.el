@@ -159,17 +159,19 @@ Each entry is (PROFILE-NAME . ARGS-LIST)."
   (ide-common-args-set-profile project-root command profile
                                (split-string-shell-command text)))
 
-(defun ide-common-args-load-as-display-string (project-root command profile)
+(defun ide-common-args-load-as-display-string (project-root command &optional profile)
   "Convert args list in PROFILE of COMMAND under PROJECT-ROOT to text."
-  (combine-and-quote-strings (ide-common-args-get-profile project-root
+  (let ((profile (or profile (ide-common-args-get-last-profile project-root command))))
+    (combine-and-quote-strings (ide-common-args-get-profile project-root
                                                           command
-                                                          profile)))
+                                                          profile))))
 
-(defun ide-common-args-load-as-shell-string (project-root command profile)
+(defun ide-common-args-load-as-shell-string (project-root command &optional profile)
   "Convert args list in PROFILE of COMMAND under PROJECT-ROOT to shell string."
-  (mapconcat #'shell-quote-argument (ide-common-args-get-profile project-root
+  (let ((profile (or profile (ide-common-args-get-last-profile project-root command))))
+    (mapconcat #'shell-quote-argument (ide-common-args-get-profile project-root
                                                                  command
-                                                                 profile)))
+                                                                 profile))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -290,11 +292,10 @@ and project, with syntax-aware coloring."
       (ide-common-args-refresh)
       (switch-to-buffer (current-buffer)))))
 
-(defun ide-common-args-select_and_edit (command &optional project-root)
+(defun ide-common-args-select-and-edit (command &optional project-root)
   "Select or create and edit a profile for COMMAND in PROJECT-ROOT."
-  (interactive)
-  (let ((choice (ide-common-args-select-profile command project-root)))
-    (when choice (ide-common-args-edit command project-root))))
+  (when (ide-common-args-select-profile command project-root)
+    (ide-common-args-edit command project-root)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

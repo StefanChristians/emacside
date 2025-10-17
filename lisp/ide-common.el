@@ -16,6 +16,7 @@
 (require 'vc)
 (require 'spdx)
 (require 'ox-md)
+(require 'compile)
 (require 'lsp-mode)
 (require 'ox-ascii)
 (require 'treemacs)
@@ -894,12 +895,37 @@ ACTIONS list of actions to execute"
       (yas-expand-snippet (yas-lookup-snippet snippet mode t))
       (yas-exit-all-snippets))))
 
+(declare-function ide-common-env-load-as-list ide-common-env (project-root &optional profile))
+(declare-function ide-common-args-select-and-edit ide-common-args (project-root command &optional profile))
+(declare-function ide-common-args-load-as-shell-string ide-common-args (project-root command &optional profile))
+
+(defun ide-common-run-compile (project-root command program base-args do-prompt)
+  "Run a none-interactive compile command and log output to compilation buffer.
+
+PROJECT-ROOT project root directory (key for selecting environment profile)
+COMMAND name of command (key for selecting arguments profile)
+PROGRAM  path of executable to run
+BASE-ARGS list of base arguments with which the program is always run
+DO-PROMPT if none-nil, prompt user for arguments profile,
+          otherwise last selected profile for COMMAND is used"
+  (let ((default-directory project-root)
+        (process-environment (append (ide-common-env-load-as-list project-root) process-environment))
+        (compilation-buffer-name-function (lambda (_) (format "*compile %s*" (f-filename project-root)))))
+    (when do-prompt
+      (ide-common-args-select-and-edit command project-root))
+    (let ((args1 (mapconcat #'shell-quote-argument base-args " "))
+          (args2 (ide-common-args-load-as-shell-string project-root command)))
+      (compile (concat program
+                       (when args1 (concat " " args1))
+                       (when args2 (concat " " args2)))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; extensions
 
 (use-package ide-common-env)
 (use-package ide-common-args)
+(use-package ide-common-debug)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

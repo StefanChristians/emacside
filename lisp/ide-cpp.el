@@ -17,8 +17,6 @@
 (require 'json)
 (require 'loop)
 (require 'cl-lib)
-(require 'compile)
-(require 'dap-mode)
 (require 'yasnippet)
 (require 'major-mode-hydra)
 
@@ -498,22 +496,53 @@ They are handled separately."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; cache
+;;;; persistent cache
 
-(defvar ide-cpp-command-args nil
-  "Cache of last command arguments per project.")
-
-(defvar ide-cpp-launch-overlays nil
-  "Cache of last overrides for debug/execute template per project.")
-
-(defvar ide-cpp-last-debug-template nil
-  "Cache of last debug template per project.")
-
-(defvar ide-cpp-last-execute-template nil
-  "Cache of last execute template per project.")
-
-(defvar ide-cpp-build-tree-cache (make-hash-table :test #'equal)
+;; last build tree cache
+(defvar ide-cpp-last-build-tree (make-hash-table :test 'equal)
   "Cache of last build tree per project.")
+
+(defvar ide-cpp-last-build-tree-file
+  (f-join user-emacs-directory ".cache" "ide-build-tree.el")
+  "Path to file storing last build tree per project.")
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; cache maintenance
+
+(defun ide-cpp-load-cache ()
+  "Load all caches from disk."
+  (setq ide-cpp-last-build-tree
+        (or (ide-common-read-file ide-cpp-last-build-tree-file)
+            (make-hash-table :test 'equal))))
+
+(defun ide-cpp-save-last-build-tree-cache ()
+  "Save last used build tree cache to disk."
+  (ide-common-write-file ide-cpp-last-build-tree-file
+                                ide-cpp-last-build-tree))
+
+(defun ide-cpp-save-cache ()
+  "Save all environment caches to disk."
+  (ide-cpp-save-last-build-tree-cache))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; last build tree getters and setters
+
+(defun ide-cpp-get-last-build-tree (project-root)
+  "Return last build tree for PROJECT-ROOT."
+  (gethash project-root ide-cpp-last-build-tree))
+
+(defun ide-cpp-set-last-build-tree (project-root build-dir)
+  "Set last used BUILD-DIR for PROJECT-ROOT."
+  (puthash project-root build-dir ide-cpp-last-build-tree)
+  (ide-cpp-save-last-build-tree-cache))
+
+(defun ide-cpp-unset-last-build-tree (project-root)
+  "Remove cached build tree for PROJECT-ROOT."
+  (when (gethash project-root ide-cpp-last-build-tree)
+    (remhash project-root ide-cpp-last-build-tree)
+    (ide-cpp-save-last-build-tree-cache)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -550,10 +579,9 @@ If DEFAULT is also nil, return `ide-cpp-default-build-tree'."
   (let* ((project-root (if path
                            (ide-common-get-project-root path)
                          (ide-common-get-current-context-project-root)))
-         (cached (gethash project-root ide-cpp-build-tree-cache))
+         (cached (ide-cpp-get-last-build-tree project-root))
          ;; only reuse cache if directory still exists
-         (build-tree (when (and cached (f-exists? (f-join project-root cached)))
-                       cached))
+         (build-tree (when (f-exists? (f-join project-root cached)) cached))
          (compile-commands-file (f-join project-root "compile_commands.json"))
          (is-symlink (f-symlink? compile-commands-file)))
 
@@ -614,7 +642,7 @@ If DEFAULT is also nil, return `ide-cpp-default-build-tree'."
                 candidate)))
 
       ;; update cache
-      (puthash project-root build-tree ide-cpp-build-tree-cache))
+      (ide-cpp-set-last-build-tree project-root build-tree))
 
     ;; return cached or computed result
     (or build-tree default ide-cpp-default-build-directory)))
@@ -1266,31 +1294,6 @@ Exclude those matching `ide-cpp-dynamic-config-excludes'."
                                  ide-cpp-available-cpp-header-extensions)))))
     (seq-map 'f-filename (seq-map 'ide-cpp-real-file-path dynamic-headers))))
 
-(defun ide-cpp-get-args-for-command (command prompt &optional force)
-  "Return saved args for COMMAND in current project.
-
-COMMAND key (e.g. \"build-debug\").
-PROMPT user prompt string
-
-If FORCE (non-nil, typically via `C-u`), prompt for a new value and save it."
-  (let* ((root (ide-common-get-current-context-project-root))
-         (key (cons root command))
-         (entry (assoc key ide-cpp-command-args))
-         (old (cdr entry))
-         (val (if (or force (not old))
-                  (read-string (format "%s args (default: %s): "
-                                       prompt (or old ""))
-                               nil nil old)
-                old)))
-    (unless (equal val old)
-      (setq ide-cpp-command-args
-            (assq-delete-all key ide-cpp-command-args))
-      (push (cons key val) ide-cpp-command-args)
-      (customize-save-variable 'ide-cpp-command-args ide-cpp-command-args))
-    (if (and val (not (string-empty-p val)))
-        (split-string val)
-      nil)))
-
 (defun ide-cpp-cmake-get-generator ()
   "Return the CMake generator.
 
@@ -1308,7 +1311,7 @@ or read the CMAKE_GENERATOR environment variable."
 (defun ide-cpp-is-multi-config ()
   "Return non-nil if a multi-config generator is being used."
   (when-let ((gen (ide-cpp-cmake-get-generator)))
-    (string-match-p "\\(Visual Studio\\|Xcode\\|Multi-Config\\)" gen)))
+    (string-match-p "\\(Visual\\|Xcode\\|Multi\\|MULTI\\)" gen)))
 
 (defun ide-cpp-read-launch-json ()
   "Return contents of .vscode/launch.json for current project."
@@ -1332,25 +1335,6 @@ TYPE \\'debug or \\'run"
            ('debug (member (alist-get 'type cfg) '("gdb" "lldb-vscode")))
            ('run   (string= (alist-get 'type cfg) "run"))))
        cfgs))))
-
-(defun ide-cpp-prompt-env-overrides (old-env)
-  "Prompt user for environment overrides.
-
-OLD-ENV existing environment overrides"
-  (let ((result (copy-sequence (or old-env nil)))
-        (done nil))
-    (while (not done)
-      (let ((var (completing-read
-                  "Env var (empty to finish): "
-                  (mapcar #'car result) nil nil)))
-        (if (string-empty-p var)
-            (setq done t)
-          (let ((val (read-string (format "Value for %s (default %s): "
-                                          var (or (cdr (assoc var result)) ""))
-                                  nil nil (cdr (assoc var result)))))
-            (setq result (assq-delete-all var result))
-            (push (cons var val) result)))))
-    result))
 
 (defun ide-cpp-apply-launch-overlays (template root &optional force)
   "Return TEMPLATE merged with saved overlays for ROOT as a plist.
@@ -1390,14 +1374,9 @@ If FORCE is non-nil, prompt for overrides."
         (setq ide-cpp-launch-overlays
               (assq-delete-all key ide-cpp-launch-overlays))
         (push (cons key overrides) ide-cpp-launch-overlays)
+        ;; TODO: use dedicated cache file
         (customize-save-variable 'ide-cpp-launch-overlays ide-cpp-launch-overlays)))
     patched))
-
-(defun ide-cpp-clear-build-tree-cache ()
-  "Clear all cached build tree entries."
-  (interactive)
-  (clrhash ide-cpp-build-tree-cache)
-  (message "Build tree cache cleared."))
 
 (defun ide-cpp-dap-disconnect-all-sessions ()
   "Disconnect all active DAP sessions."
@@ -1663,7 +1642,7 @@ CMAKE-IN CMake dynamic configuration file extension"
 
       ;; C++ common project post-creation steps
       (apply #'ide-cpp-create-cmake-root args)
-      (ide-cpp-initialize-debug args nil t)
+      (ide-cpp-initialize-debug nil (cl-getf args :path) (cl-getf args :build-dir))
       (ide-common-initial-commit (cl-getf args :path))
       (delete-other-windows)
 
@@ -2486,75 +2465,56 @@ before calling `ide-common-register-auto-inserts'."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; actions
 
-(defun ide-cpp-compile-run (args)
-  "Run compile command.
-
-ARGS list of program and arguments"
-  (let* ((project-root (ide-common-get-current-context-project-root))
-         (default-directory (or project-root default-directory))
-         (cmd (string-join args " ")))
-    (compile cmd)))
-
-(defun ide-cpp-configure (build-type arg)
+(defun ide-cpp-configure (build-type &optional prefix)
   "Configure project.
 
 BUILD-TYPE Debug or Release
-With prefix ARG, prompt for extra args"
+With PREFIX, prompt for extra args"
   (let* ((build-tree (ide-cpp-get-build-tree))
          (project-root (ide-common-get-current-context-project-root))
-         (extra (ide-cpp-get-args-for-command
-                 (format "configure-%s" (downcase build-type))
-                 (format "Configure %s" build-type)
-                 arg))
+         (command (format "configure-%s" (downcase build-type)))
          (base-args (if (ide-cpp-is-multi-config)
                         (list "-S" "." "-B" build-tree
                               "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
                       (list "-S" "." "-B" build-tree
                             (format "-DCMAKE_BUILD_TYPE=%s" build-type)
                             "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"))))
-    ;; run cmake
-    (ide-cpp-compile-run (append (list "cmake") base-args extra))
     ;; install one-shot hook to provide compile-commands.json when ready
     (let (hook-fn)
       (setq hook-fn
             (lambda (_buf _msg)
               (ide-cpp-link-compile-commands build-tree project-root)
               (remove-hook 'compilation-finish-functions hook-fn)))
-      (add-hook 'compilation-finish-functions hook-fn))))
+      (add-hook 'compilation-finish-functions hook-fn))
+    ;; run cmake
+    (ide-common-run-compile project-root command "cmake" base-args prefix)))
 
-(defun ide-cpp-configure-debug (&optional arg)
-  "Configure project for Debug.  With prefix ARG, prompt for extra args."
+(defun ide-cpp-configure-debug (&optional prefix)
+  "Configure project for Debug.  With PREFIX, prompt for extra args."
   (interactive "P")
-  (ide-cpp-configure "Debug" arg))
+  (ide-cpp-configure "Debug" prefix))
 
-(defun ide-cpp-configure-release (&optional arg)
-  "Configure project for Release.  With prefix ARG, prompt for extra args."
+(defun ide-cpp-configure-release (&optional prefix)
+  "Configure project for Release.  With PREFIX, prompt for extra args."
   (interactive "P")
-  (ide-cpp-configure "Release" arg))
+  (ide-cpp-configure "Release" prefix))
 
-(defun ide-cpp-initialize (build-type &optional args arg do-not-prompt)
+(defun ide-cpp-initialize (build-type &optional prefix path build-dir)
   "Initialize project for BUILD-TYPE (\"Debug\" or \"Release\").
 
-If called non-interactively or DO-NOT-PROMPT is non-nil, use ARGS
-\(which should contain :path and :build-dir) and do not prompt.
+If called non-interactively (PATH and BUILD-DIR are provided and PREFIX is nil),
+do not prompt.
 
-If called interactively (and DO-NOT-PROMPT is nil), prompt for build
-tree override, and with prefix ARG (usually `C-u`), prompt for extra arguments."
-  (let* ((interactive-call (and (called-interactively-p 'any)
-                                (not do-not-prompt)))
-         ;; Determine project root
-         (project-root (if interactive-call
-                           (ide-common-get-current-context-project-root)
-                         (cl-getf args :path)))
-         ;; Determine final build tree
+If called interactively, prompt for BUILD-DIR override.
+If called with PREFIX (usually `C-u`), prompt for extra arguments."
+  (let* ((project-root (or path (ide-common-get-current-context-project-root)))
          (final-build-tree
           (let* ((default-dir (ide-cpp-get-build-tree project-root))
-                 (input (if interactive-call
+                 (input (or build-dir
                             (read-directory-name
                              "Build directory: "
                              default-dir default-dir nil
-                             (f-filename (directory-file-name default-dir)))
-                          (cl-getf args :build-dir)))
+                             (f-filename default-dir))))
                  (candidate (f-canonical input)))
             (if (f-descendant-of? candidate project-root)
                 (f-relative candidate project-root)
@@ -2567,7 +2527,7 @@ tree override, and with prefix ARG (usually `C-u`), prompt for extra arguments."
              (when (and tree (f-exists? tree))
                (message "Deleting existing build tree: %s" tree)
                (f-delete tree t)))
-           (ide-cpp-clear-build-tree-cache)))
+           (ide-cpp-unset-last-build-tree project-root)))
       ;; first pass
       (cleanup-pass project-root nil)
       (cleanup-pass project-root final-build-tree)
@@ -2583,104 +2543,111 @@ tree override, and with prefix ARG (usually `C-u`), prompt for extra arguments."
     ;; phase 2: create and register new build tree
     (unless (f-exists? final-build-tree)
       (message "Creating new build tree directory: %s" final-build-tree)
-      ;; f-join scraps project-root if final-build-tree is absolute
+      ;; f-join scraps previous path components if final-build-tree is absolute
       ;; so /project-root/ build --> /project-root/build
       ;; but /project-root/ /tmp/build --> /tmp/build
       (f-mkdir (f-join project-root final-build-tree)))
-    (puthash project-root final-build-tree ide-cpp-build-tree-cache)
+    (ide-cpp-set-last-build-tree project-root final-build-tree)
 
     ;; phase 3: configure new build tree
     (message "Initializing fresh %s build tree: %s"
              build-type final-build-tree)
     (pcase build-type
       ("Release"
-       (ide-cpp-configure-release arg))
+       (ide-cpp-configure-release prefix))
       (_
-       (ide-cpp-configure-debug arg)))))
+       (ide-cpp-configure-debug prefix)))))
 
-(defun ide-cpp-initialize-debug (&optional args arg do-not-prompt)
+(defun ide-cpp-initialize-debug (&optional prefix path build-dir)
   "Initialize project for Debug build.
 
-If called programmatically (e.g. from `ide-cpp-create-project`),
-ARGS should include :path and :build-dir, and DO-NOT-PROMPT should be t.
+If called programmatically (e.g. from `ide-cpp-create-project'),
+PREFIX must be nil and PATH and BUILD-DIR provided.
 
 If called interactively, prompt user for build tree.
-With prefix ARG (usually `C-u`), prompt for extra arguments"
+With PREFIX (usually `C-u`), prompt for extra arguments"
   (interactive "P")
-  (ide-cpp-initialize "Debug" args arg do-not-prompt))
+  (ide-cpp-initialize "Debug" prefix path build-dir))
 
-(defun ide-cpp-initialize-release (&optional args arg do-not-prompt)
+(defun ide-cpp-initialize-release (&optional prefix)
   "Initialize project for Release build.
 
 Typically invoked interactively by the user.
-With prefix ARG (usually `C-u`), prompt for extra arguments.
-
-If called programmatically (e.g. from `ide-cpp-create-project`),
-ARGS should include :path and :build-dir, and DO-NOT-PROMPT should be t."
+With PREFIX (usually `C-u`), prompt for extra arguments."
   (interactive "P")
-  (ide-cpp-initialize "Release" args arg do-not-prompt))
+  (ide-cpp-initialize "Release" prefix))
 
-(defun ide-cpp-build-debug (&optional arg)
-  "Build Debug configuration.  With prefix ARG, prompt for extra args."
-  (interactive "P")
+(defun ide-cpp-build (build-type &optional prefix)
+  "Build project.
+
+BUILD-TYPE Debug or Release
+With PREFIX, prompt for extra args"
   (let* ((build-tree (ide-cpp-get-build-tree))
-         (extra (ide-cpp-get-args-for-command "build-debug" "Build Debug" arg))
+         (project-root (ide-common-get-current-context-project-root))
+         (command (format "build-%s" (downcase build-type)))
          (base-args (if (ide-cpp-is-multi-config)
-                        (list "--build" build-tree "--config" "Debug")
+                        (list "--build" build-tree "--config" build-type)
                       (list "--build" build-tree))))
-    (ide-cpp-compile-run (append (list "cmake") base-args extra))))
+    ;; run cmake
+    (ide-common-run-compile project-root command "cmake" base-args prefix)))
 
-(defun ide-cpp-build-release (&optional arg)
-  "Build Release configuration.  With prefix ARG, prompt for extra args."
+(defun ide-cpp-build-debug (&optional prefix)
+  "Build Debug configuration.  With PREFIX, prompt for extra args."
   (interactive "P")
-  (let* ((build-tree (ide-cpp-get-build-tree))
-         (extra (ide-cpp-get-args-for-command "build-release" "Build Release" arg))
-         (base-args (if (ide-cpp-is-multi-config)
-                        (list "--build" build-tree "--config" "Release")
-                      (list "--build" build-tree))))
-    (ide-cpp-compile-run (append (list "cmake") base-args extra))))
+  (ide-cpp-build "Debug" prefix))
 
-(defun ide-cpp-install-debug (&optional arg)
-  "Install Debug configuration.  With prefix ARG, prompt for extra args."
+(defun ide-cpp-build-release (&optional prefix)
+  "Build Release configuration.  With PREFIX, prompt for extra args."
   (interactive "P")
+  (ide-cpp-build "Release" prefix))
+
+(defun ide-cpp-install (build-type &optional prefix)
+  "Install project.
+
+BUILD-TYPE Debug or Release
+With PREFIX, prompt for extra args"
   (let* ((build-tree (ide-cpp-get-build-tree))
-         (extra (ide-cpp-get-args-for-command "install-debug" "Install Debug" arg))
+         (project-root (ide-common-get-current-context-project-root))
+         (command (format "install-%s" (downcase build-type)))
          (base-args (if (ide-cpp-is-multi-config)
-                        (list "--install" build-tree "--config" "Debug")
+                        (list "--install" build-tree "--config" build-type)
                       (list "--install" build-tree))))
-    (ide-cpp-compile-run (append (list "cmake") base-args extra))))
+    ;; run cmake
+    (ide-common-run-compile project-root command "cmake" base-args prefix)))
 
-(defun ide-cpp-install-release (&optional arg)
-  "Install Release configuration.  With prefix ARG, prompt for extra args."
+(defun ide-cpp-install-debug (&optional prefix)
+  "Install Debug configuration.  With PREFIX, prompt for extra args."
   (interactive "P")
-  (let* ((build-tree (ide-cpp-get-build-tree))
-         (extra (ide-cpp-get-args-for-command "install-release" "Install Release" arg))
-         (base-args (if (ide-cpp-is-multi-config)
-                        (list "--install" build-tree "--config" "Release")
-                      (list "--install" build-tree))))
-    (ide-cpp-compile-run (append (list "cmake") base-args extra))))
+  (ide-cpp-install "Debug" prefix))
 
-(defun ide-cpp-pack-debug (&optional arg)
-  "Package Debug configuration with cpack.
-With prefix ARG, prompt for extra args."
+(defun ide-cpp-install-release (&optional prefix)
+  "Install Release configuration.  With PREFIX, prompt for extra args."
   (interactive "P")
+  (ide-cpp-install "Debug" prefix))
+
+(defun ide-cpp-pack (build-type &optional prefix)
+  "Package project with cpack.
+
+BUILD-TYPE Debug or Release
+With PREFIX, prompt for extra args"
   (let* ((build-tree (ide-cpp-get-build-tree))
-         (extra (ide-cpp-get-args-for-command "pack-debug" "Pack Debug" arg))
+         (project-root (ide-common-get-current-context-project-root))
+         (command (format "pack-%s" (downcase build-type)))
          (base-args (append (list "--config" (f-join build-tree "CPackConfig.cmake"))
                             (when (ide-cpp-is-multi-config)
-                              (list "-C" "Debug")))))
-    (ide-cpp-compile-run (append (list "cpack") base-args extra))))
+                              (list "-C" build-type)))))
+    ;; run cmake
+    (ide-common-run-compile project-root command "cpack" base-args prefix)))
 
-(defun ide-cpp-pack-release (&optional arg)
-  "Package Release configuration with cpack.
-With prefix ARG, prompt for extra args."
+(defun ide-cpp-pack-debug (&optional prefix)
+  "Package Debug configuration with cpack.  With PREFIX, prompt for extra args."
   (interactive "P")
-  (let* ((build-tree (ide-cpp-get-build-tree))
-         (extra (ide-cpp-get-args-for-command "pack-release" "Pack Release" arg))
-         (base-args (append (list "--config" (f-join build-tree "CPackConfig.cmake"))
-                            (when (ide-cpp-is-multi-config)
-                              (list "-C" "Release")))))
-    (ide-cpp-compile-run (append (list "cpack") base-args extra))))
+  (ide-cpp-pack "Debug" prefix))
+
+(defun ide-cpp-pack-release (&optional prefix)
+  "Package Release configuration with cpack.  With PREFIX, prompt for extra args."
+  (interactive "P")
+  (ide-cpp-pack "Release" prefix))
 
 (defun ide-cpp-debug (&optional arg)
   "Run debugger.
@@ -2742,15 +2709,15 @@ Otherwise reuse last chosen config and overlays for this project."
 ;;;; hydra menus
 
 (defun ide-cpp-hydra-dispatch ()
-    "Open the appropriate Hydra: project or debug.
-If a debug session is active, open `hydra-ide-cpp-debug';
-otherwise, open `hydra-ide-cpp-project'."
-    (interactive)
-    (if (lsp-session-get-metadata "debug-sessions")
-        (hydra-ide-cpp-debug/body)
-      (hydra-ide-cpp-project/body)))
+  "Open appropriate hydra for C++ projects."
+  (interactive)
+  (if (lsp-session-get-metadata "debug-sessions")
+      (hydra-ide-cpp-debug/body)
+    (if (ide-cpp-is-multi-config)
+        (hydra-ide-cpp-project-multi-config/body)
+      (hydra-ide-cpp-project-single-config/body))))
 
-(pretty-hydra-define hydra-ide-cpp-project
+(pretty-hydra-define hydra-ide-cpp-project-single-config
   (:title (concat
            (format "%s C++ Build & Run\n" (all-the-icons-material "build"))
            (propertize
@@ -2759,13 +2726,39 @@ otherwise, open `hydra-ide-cpp-project'."
    :quit-key ("q" "ESC")
    :color teal)
   ("Environment"
-   (("E" ide-common-env-edit "Edit Environment")
-   ("e" ide-common-env-select-profile "Select Environment"))
+   (("e" ide-common-env-select-and-edit "Select Environment"))
   "Configure"
    (("C" (lambda (arg) (interactive "P") (ide-cpp-configure-release arg)) "Configure Release")
     ("c" (lambda (arg) (interactive "P") (ide-cpp-configure-debug arg)) "Configure Debug")
     ("I" (lambda (arg) (interactive "P") (ide-cpp-initialize-release arg)) "Initialize Release")
     ("i" (lambda (arg) (interactive "P") (ide-cpp-initialize-debug arg)) "Initialize Debug"))
+   "Build / Install"
+   (("p" (lambda (arg) (interactive "P") (ide-cpp-pack-debug arg)) "Pack")
+    ("n" (lambda (arg) (interactive "P") (ide-cpp-install-debug arg)) "Install")
+    ("b" (lambda (arg) (interactive "P") (ide-cpp-build-debug arg)) "Build"))
+   "Run / Debug"
+   (("r" (lambda (arg) (interactive "P") (ide-cpp-execute arg)) "Run" :color blue)
+    ("d" (lambda (arg) (interactive "P") (ide-cpp-debug arg)) "Debug" :color blue))
+   "Breakpoints"
+   (("T" dap-breakpoint-delete-all "Delete All")
+    ("t" dap-breakpoint-toggle "toggle"))
+   "Session"
+   (("X" ide-cpp-dap-disconnect-and-delete-all-sessions "Terminate All" :color blue)
+    ("x" ide-cpp-dap-disconnect-all-sessions "Disconnect All"))))
+
+(pretty-hydra-define hydra-ide-cpp-project-multi-config
+  (:title (concat
+           (format "%s C++ Build & Run\n" (all-the-icons-material "build"))
+           (propertize
+            (substitute-command-keys
+             "Press `\\[universal-argument]' to modify arguments before executing") 'face 'shadow))
+   :quit-key ("q" "ESC")
+   :color teal)
+  ("Environment"
+   (("e" ide-common-env-select-and-edit "Select Environment"))
+  "Configure"
+   (("c" (lambda (arg) (interactive "P") (ide-cpp-configure-debug arg)) "Configure")
+    ("i" (lambda (arg) (interactive "P") (ide-cpp-initialize-debug arg)) "Initialize"))
    "Build / Install"
    (("P" (lambda (arg) (interactive "P") (ide-cpp-pack-release arg)) "Pack Release")
     ("p" (lambda (arg) (interactive "P") (ide-cpp-pack-debug arg)) "Pack Debug")
@@ -2782,6 +2775,8 @@ otherwise, open `hydra-ide-cpp-project'."
    "Session"
    (("X" ide-cpp-dap-disconnect-and-delete-all-sessions "Terminate All" :color blue)
     ("x" ide-cpp-dap-disconnect-all-sessions "Disconnect All"))))
+
+;; TODO: Move below hydra to common
 
 (pretty-hydra-define hydra-ide-cpp-debug
   (:title (format "%s C++ Debug Controls" (all-the-icons-material "bug_report"))
