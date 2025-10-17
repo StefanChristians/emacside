@@ -6,6 +6,7 @@
 ;; SPDX-License-Identifier: MIT
 
 ;;; Commentary:
+
 ;; Manage per-project environment profiles.
 ;;
 ;; Each project can have multiple named profiles,
