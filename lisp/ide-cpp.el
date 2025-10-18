@@ -499,11 +499,11 @@ They are handled separately."
 ;;;; persistent cache
 
 ;; last build tree cache
-(defvar ide-cpp-last-build-tree (make-hash-table :test 'equal)
-  "Cache of last build tree per project.")
+(defvar ide-cpp-last-build-tree nil
+  "Alist mapping project roots to their last build tree directories.")
 
 (defvar ide-cpp-last-build-tree-file
-  (f-join user-emacs-directory ".cache" "ide-build-tree.el")
+  (f-join user-emacs-directory ".cache" "ide-build-tree.cache")
   "Path to file storing last build tree per project.")
 
 
@@ -511,18 +511,18 @@ They are handled separately."
 ;;;; cache maintenance
 
 (defun ide-cpp-load-cache ()
-  "Load all caches from disk."
+  "Load all C++ caches from disk."
   (setq ide-cpp-last-build-tree
         (or (ide-common-read-file ide-cpp-last-build-tree-file)
-            (make-hash-table :test 'equal))))
+            nil)))
 
 (defun ide-cpp-save-last-build-tree-cache ()
   "Save last used build tree cache to disk."
   (ide-common-write-file ide-cpp-last-build-tree-file
-                                ide-cpp-last-build-tree))
+                         ide-cpp-last-build-tree))
 
 (defun ide-cpp-save-cache ()
-  "Save all environment caches to disk."
+  "Save all C++ caches to disk."
   (ide-cpp-save-last-build-tree-cache))
 
 
@@ -531,18 +531,19 @@ They are handled separately."
 
 (defun ide-cpp-get-last-build-tree (project-root)
   "Return last build tree for PROJECT-ROOT."
-  (gethash project-root ide-cpp-last-build-tree))
+  (alist-get project-root ide-cpp-last-build-tree nil nil #'string=))
 
 (defun ide-cpp-set-last-build-tree (project-root build-dir)
   "Set last used BUILD-DIR for PROJECT-ROOT."
-  (puthash project-root build-dir ide-cpp-last-build-tree)
+  (setf (alist-get project-root ide-cpp-last-build-tree nil nil #'string=)
+        build-dir)
   (ide-cpp-save-last-build-tree-cache))
 
 (defun ide-cpp-unset-last-build-tree (project-root)
   "Remove cached build tree for PROJECT-ROOT."
-  (when (gethash project-root ide-cpp-last-build-tree)
-    (remhash project-root ide-cpp-last-build-tree)
-    (ide-cpp-save-last-build-tree-cache)))
+  (setq ide-cpp-last-build-tree
+        (assq-delete-all project-root ide-cpp-last-build-tree))
+  (ide-cpp-save-last-build-tree-cache))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
