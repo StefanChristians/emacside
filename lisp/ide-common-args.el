@@ -31,15 +31,15 @@ of (PROFILE-NAME . ARGS-LIST).
 ARGS-LIST is a list of strings representing command line arguments.")
 
 (defvar ide-common-args-cache-file
-  (f-join user-emacs-directory ".cache" "ide-args.eld")
+  (f-join user-emacs-directory ".cache" "ide-common-args-project-commands.eld")
   "Path to file used for persistent command argument cache.")
 
 ;; last profile cache
-(defvar ide-common-args-last '()
+(defvar ide-common-args-last-profile '()
   "Alist mapping project roots to alists of (COMMAND . LAST-PROFILE).")
 
-(defvar ide-common-args-last-file
-  (f-join user-emacs-directory ".cache" "ide-args-last.eld")
+(defvar ide-common-args-last-profile-file
+  (f-join user-emacs-directory ".cache" "ide-common-args-last-profile.eld")
   "Path to file storing last selected argument profile per command per project.")
 
 
@@ -50,8 +50,8 @@ ARGS-LIST is a list of strings representing command line arguments.")
   "Load all argument caches from disk."
   (setq ide-common-args-project-commands
         (or (ide-common-read-file ide-common-args-cache-file) '()))
-  (setq ide-common-args-last
-        (or (ide-common-read-file ide-common-args-last-file) '())))
+  (setq ide-common-args-last-profile
+        (or (ide-common-read-file ide-common-args-last-profile-file) '())))
 
 (defun ide-common-args-save-profile-cache ()
   "Save argument profiles cache to disk."
@@ -60,8 +60,8 @@ ARGS-LIST is a list of strings representing command line arguments.")
 
 (defun ide-common-args-save-last-cache ()
   "Save last used argument profiles cache to disk."
-  (ide-common-write-file ide-common-args-last-file
-                         ide-common-args-last))
+  (ide-common-write-file ide-common-args-last-profile-file
+                         ide-common-args-last-profile))
 
 (defun ide-common-args-save-cache ()
   "Save all argument caches to disk."
@@ -142,18 +142,18 @@ ARGS-LIST is a list of strings representing command line arguments.")
 
 (defun ide-common-args-get-last-table (project-root)
   "Return alist of last profiles for PROJECT-ROOT, creating it if needed."
-  (let ((entry (assoc project-root ide-common-args-last)))
+  (let ((entry (assoc project-root ide-common-args-last-profile)))
     (if entry
         (cdr entry)
       (let ((tbl '()))
-        (push (cons project-root tbl) ide-common-args-last)
+        (push (cons project-root tbl) ide-common-args-last-profile)
         tbl))))
 
 (defun ide-common-args-set-last-table (project-root table)
   "Set last profile TABLE for PROJECT-ROOT."
-  (setq ide-common-args-last
+  (setq ide-common-args-last-profile
         (cons (cons project-root table)
-              (assoc-delete-all project-root ide-common-args-last)))
+              (assoc-delete-all project-root ide-common-args-last-profile)))
   (ide-common-args-save-last-cache))
 
 (defun ide-common-args-get-last-profile (project-root command)
