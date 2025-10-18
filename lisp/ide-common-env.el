@@ -250,7 +250,7 @@ VARS is itself an alist of (NAME . VALUE).")
       (switch-to-buffer (current-buffer)))))
 
 (defun ide-common-env-select-and-edit (&optional project-root)
-  "Select or create and edit a profile for COMMAND in PROJECT-ROOT."
+  "Select or create and edit a profile in PROJECT-ROOT."
   (when (ide-common-env-select-profile project-root)
     (ide-common-env-edit project-root)))
 
