@@ -21,7 +21,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; persistent cache (alist-based)
+;;;; persistent cache
 
 ;; arguments cache
 (defvar ide-common-args-project-commands '()
