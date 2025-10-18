@@ -264,11 +264,16 @@
   :config
   (setq dap-auto-configure-features
         '(sessions locals breakpoints expressions repl tooltip))
-  (dap-auto-configure-mode)
-  ;; GDB debugger backend
-  (require 'dap-gdb)
-  ;; LLDB debugger backend
-  (require 'dap-lldb)
+  (dap-auto-configure-mode))
+
+;; DAP GDB backend
+(use-package dap-gdb
+  :after dap-mode)
+
+;; DAP LLDB backend
+(use-package dap-lldb
+  :after dap-mode
+  :config
   (setq dap-lldb-debug-program '("lldb-dap")))
 
 ;; dash
