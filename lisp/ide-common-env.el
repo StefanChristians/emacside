@@ -32,15 +32,15 @@ Each value is an alist of (PROFILE-NAME . VARS).
 VARS is itself an alist of (NAME . VALUE).")
 
 (defvar ide-common-env-cache-file
-  (f-join user-emacs-directory ".cache" "ide-env.eld")
+  (f-join user-emacs-directory ".cache" "ide-common-env-project-profiles.eld")
   "Path to file used for persistent environment profile cache.")
 
 ;; last profile cache
-(defvar ide-common-env-last nil
+(defvar ide-common-env-last-profile nil
   "Alist mapping project roots to last selected environment profile name.")
 
-(defvar ide-common-env-last-file
-  (f-join user-emacs-directory ".cache" "ide-env-last.eld")
+(defvar ide-common-env-last-profile-file
+  (f-join user-emacs-directory ".cache" "ide-common-env-last-profile.eld")
   "Path to file storing last selected environment profile per project.")
 
 
@@ -52,8 +52,8 @@ VARS is itself an alist of (NAME . VALUE).")
   (setq ide-common-env-project-profiles
         (or (ide-common-read-file ide-common-env-cache-file)
             nil))
-  (setq ide-common-env-last
-        (or (ide-common-read-file ide-common-env-last-file)
+  (setq ide-common-env-last-profile
+        (or (ide-common-read-file ide-common-env-last-profile-file)
             nil)))
 
 (defun ide-common-env-save-profile-cache ()
@@ -63,8 +63,8 @@ VARS is itself an alist of (NAME . VALUE).")
 
 (defun ide-common-env-save-last-cache ()
   "Save last used profile cache to disk."
-  (ide-common-write-file ide-common-env-last-file
-                         ide-common-env-last))
+  (ide-common-write-file ide-common-env-last-profile-file
+                         ide-common-env-last-profile))
 
 (defun ide-common-env-save-cache ()
   "Save all environment caches to disk."
@@ -118,12 +118,12 @@ VARS is itself an alist of (NAME . VALUE).")
 
 (defun ide-common-env-get-last-profile (project-root)
   "Return last used profile name for PROJECT-ROOT."
-  (or (alist-get project-root ide-common-env-last nil nil #'string=)
+  (or (alist-get project-root ide-common-env-last-profile nil nil #'string=)
       "default"))
 
 (defun ide-common-env-set-last-profile (project-root profile)
   "Set last used PROFILE name for PROJECT-ROOT."
-  (setf (alist-get project-root ide-common-env-last nil nil #'string=)
+  (setf (alist-get project-root ide-common-env-last-profile nil nil #'string=)
         profile)
   (ide-common-env-save-last-cache))
 
