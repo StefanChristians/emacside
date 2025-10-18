@@ -46,7 +46,7 @@ The adapter will only be registered if both:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; persistent cache (alist-based)
+;;;; persistent cache
 
 ;; last debugger cache
 (defvar ide-common-debug-last-debugger '()
