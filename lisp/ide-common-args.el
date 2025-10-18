@@ -23,6 +23,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; persistent cache (alist-based)
 
+;; arguments cache
 (defvar ide-common-args-project-commands '()
   "Alist mapping projects to command argument profiles.
 Each value is an alist mapping COMMAND strings to a list
@@ -33,6 +34,7 @@ ARGS-LIST is a list of strings representing command line arguments.")
   (f-join user-emacs-directory ".cache" "ide-args.el")
   "Path to file used for persistent command argument cache.")
 
+;; last profile cache
 (defvar ide-common-args-last '()
   "Alist mapping project roots to alists of (COMMAND . LAST-PROFILE).")
 
