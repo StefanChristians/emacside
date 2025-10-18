@@ -1136,6 +1136,7 @@
 (use-package ide-lisp)
 
 (use-package ide-cpp
+  :demand
   :custom
   (ide-common-default-project-parent "~/development/sandbox/")
   :bind
