@@ -2799,6 +2799,32 @@ Otherwise reuse last chosen config and overlays for this project."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; bootstrap
 
+;; register known C++ debuggers and their DAP adapters
+(with-eval-after-load 'ide-common-debug
+  ;; GDB adapters
+  (ide-common-debug-register-adapter
+   "GDB" "gdb" "gdb" 'dap-gdb
+   "GNU Debugger with dap-gdb")
+  (ide-common-debug-register-adapter
+   "GDB" "gdb" "cpptools" 'dap-cpptools
+   "GNU Debugger with dap-cpptools (VSCode C++ backend)")
+  (ide-common-debug-register-adapter
+   "GDB" "gdb" "gdb" 'dap-gdb-lldb
+   "GNU Debugger with dap-gdb-lldb")
+
+  ;; LLDB adapters
+  (ide-common-debug-register-adapter
+   "LLDB" "lldb" "lldb-vscode" 'dap-lldb
+   "LLVM Debugger with dap-lldb")
+  (ide-common-debug-register-adapter
+   "LLDB" "lldb" "lldb-mi" 'dap-gdb-lldb
+   "LLVM Debugger with dap-gdb-lldb")
+
+  ;; MSVC/Windows adapters
+  (ide-common-debug-register-adapter
+   "MSVC" "msvcdbg.exe" "cppvsdbg" 'dap-cpptools
+   "Microsoft Visual C++ debugger with dap-cpptools"))
+
 ;; add C++ project creation item to treemacs context menu
 (with-eval-after-load 'treemacs-mouse-interface
   (with-eval-after-load 'ide-common
