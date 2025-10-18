@@ -1314,106 +1314,6 @@ or read the CMAKE_GENERATOR environment variable."
   (when-let ((gen (ide-cpp-cmake-get-generator)))
     (string-match-p "\\(Visual\\|Xcode\\|Multi\\|MULTI\\)" gen)))
 
-(defun ide-cpp-read-launch-json ()
-  "Return contents of .vscode/launch.json for current project."
-  (let* ((root (ide-common-get-current-context-project-root))
-         (file (f-join root ".vscode/launch.json")))
-    (when (f-exists? file)
-      (with-temp-buffer
-        (insert-file-contents file)
-        (json-parse-buffer :object-type 'alist :array-type 'list)))))
-
-(defun ide-cpp-get-launch-configs (type)
-  "Return list of launch.json configs filtered by TYPE.
-
-TYPE \\'debug or \\'run"
-  (let* ((json (ide-cpp-read-launch-json))
-         (cfgs (and json (alist-get 'configurations json))))
-    (when cfgs
-      (cl-remove-if-not
-       (lambda (cfg)
-         (pcase type
-           ('debug (member (alist-get 'type cfg) '("gdb" "lldb-vscode")))
-           ('run   (string= (alist-get 'type cfg) "run"))))
-       cfgs))))
-
-(defun ide-cpp-apply-launch-overlays (template root &optional force)
-  "Return TEMPLATE merged with saved overlays for ROOT as a plist.
-
-If FORCE is non-nil, prompt for overrides."
-  (let* ((tname (alist-get 'name template))
-         (key (cons root tname))
-         (entry (assoc key ide-cpp-launch-overlays))
-         (old (cdr entry))
-         (old-args (plist-get old :args))
-         (old-env  (plist-get old :env))
-         ;; prompt for overrides if needed
-         (args (if (or force (not old-args))
-                   (read-string (format "Extra args for %s (default: %s): "
-                                        tname (or old-args ""))
-                                nil nil old-args)
-                 old-args))
-         (env (if (or force (not old-env))
-                  (ide-cpp-prompt-env-overrides old-env)
-                old-env))
-         ;; convert original template alist to plist
-         (template-plist
-          (apply 'append
-                 (mapcar (lambda (pair)
-                           (list (intern (concat ":" (symbol-name (car pair))))
-                                 (cdr pair)))
-                         template)))
-         ;; apply overlays
-         (patched (copy-sequence template-plist)))
-    (when (and args (not (string-empty-p args)))
-      (plist-put patched :args (split-string args)))
-    (when env
-      (plist-put patched :env env))
-    ;; save overrides if changed
-    (let ((overrides (list :args args :env env)))
-      (unless (equal overrides old)
-        (setq ide-cpp-launch-overlays
-              (assq-delete-all key ide-cpp-launch-overlays))
-        (push (cons key overrides) ide-cpp-launch-overlays)
-        ;; TODO: use dedicated cache file
-        (customize-save-variable 'ide-cpp-launch-overlays ide-cpp-launch-overlays)))
-    patched))
-
-(defun ide-cpp-dap-disconnect-all-sessions ()
-  "Disconnect all active DAP sessions."
-  (interactive)
-  (dolist (session (ignore-errors (dap--get-sessions)))
-    (when (dap--session-running session)
-      (dap-disconnect session))))
-
-(defun ide-cpp-dap-wait-and-delete-session (session &optional interval)
-  "Wait until SESSION is no longer running, then delete it.
-INTERVAL is the polling time in seconds (default 0.1)."
-  (let ((interval (or interval 0.1)))
-    (if (not (dap--session-running session))
-        (dap-delete-session session)
-      ;; Session still running → check again later
-      (run-at-time interval nil
-                   (lambda ()
-                     (ide-cpp-dap-wait-and-delete-session session interval))))))
-
-(defun ide-cpp-dap-disconnect-and-delete-session (&optional session)
-  "Safely disconnect and delete a DAP SESSION.
-If SESSION is nil, use the current session."
-  (interactive)
-  (let ((session (or session (dap--cur-session-or-die))))
-    (if (dap--session-running session)
-        (progn
-          (dap-disconnect session)
-          (ide-cpp-dap-wait-and-delete-session session))
-      (dap-delete-session session))))
-
-(defun ide-cpp-dap-disconnect-and-delete-all-sessions ()
-  "Safely disconnect and delete all DAP sessions."
-  (interactive)
-  (dolist (session (ignore-errors (dap--get-sessions)))
-    (ide-cpp-dap-disconnect-and-delete-session session)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; project scaffolding
@@ -2650,28 +2550,6 @@ With PREFIX, prompt for extra args"
   (interactive "P")
   (ide-cpp-pack "Release" prefix))
 
-(defun ide-cpp-debug (&optional arg)
-  "Run debugger.
-
-If ARG (prefix, e.g. `C-u`) is given, prompt for config and/or overlays.
-Otherwise reuse last chosen config and overlays for this project."
-  (interactive "P")
-  (let* ((root (ide-common-get-current-context-project-root))
-         (configs (ide-cpp-get-launch-configs 'debug))
-         (names (mapcar (lambda (c) (alist-get 'name c)) configs))
-         (last (cdr (assoc root ide-cpp-last-debug-template)))
-         (choice (if (or arg (not last))
-                     (completing-read "Debug config: " names nil t)
-                   last))
-         (template (cl-find-if (lambda (c) (string= (alist-get 'name c) choice)) configs)))
-    (unless template
-      (user-error "No debug configuration found"))
-    ;; remember selected name
-    (setf (alist-get root ide-cpp-last-debug-template) choice)
-    ;; apply overlays (may prompt if ARG)
-    (let ((patched (ide-cpp-apply-launch-overlays template root arg)))
-      (dap-debug patched))))
-
 (defun ide-cpp-execute (&optional arg)
   "Run program without debugger.
 
@@ -2713,7 +2591,7 @@ Otherwise reuse last chosen config and overlays for this project."
   "Open appropriate hydra for C++ projects."
   (interactive)
   (if (lsp-session-get-metadata "debug-sessions")
-      (hydra-ide-cpp-debug/body)
+      (hydra-ide-common-debug/body)
     (if (ide-cpp-is-multi-config)
         (hydra-ide-cpp-project-multi-config/body)
       (hydra-ide-cpp-project-single-config/body))))
@@ -2776,24 +2654,6 @@ Otherwise reuse last chosen config and overlays for this project."
    "Session"
    (("X" ide-cpp-dap-disconnect-and-delete-all-sessions "Terminate All" :color blue)
     ("x" ide-cpp-dap-disconnect-all-sessions "Disconnect All"))))
-
-;; TODO: Move below hydra to common
-
-(pretty-hydra-define hydra-ide-cpp-debug
-  (:title (format "%s C++ Debug Controls" (all-the-icons-material "bug_report"))
-   :quit-key ("q" "ESC")
-   :color amaranth)
-  ("Stepping"
-   (("n" dap-next "Next")
-    ("i" dap-step-in "Step In")
-    ("o" dap-step-out "Step Out")
-    ("c" dap-continue "Continue" :color blue))
-   "Breakpoints"
-   (("t" dap-breakpoint-toggle "Toggle")
-    ("a" dap-breakpoint-delete-all "Delete All"))
-   "Session"
-   (("X" ide-cpp-dap-disconnect-and-delete-session "Terminate" :color blue)
-    ("x" dap-disconnect "Disconnect"))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
