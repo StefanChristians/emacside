@@ -2551,39 +2551,6 @@ With PREFIX, prompt for extra args"
   (interactive "P")
   (ide-cpp-pack "Release" prefix))
 
-(defun ide-cpp-execute (&optional arg)
-  "Run program without debugger.
-
-If ARG (prefix, e.g. `C-u`) is given, prompt for config and/or overlays.
-Otherwise reuse last chosen config and overlays for this project."
-  (interactive "P")
-  (let* ((root (ide-common-get-current-context-project-root))
-         (configs (ide-cpp-get-launch-configs 'run))
-         (names (mapcar (lambda (c) (alist-get 'name c)) configs))
-         (last (cdr (assoc root ide-cpp-last-execute-template)))
-         (choice (if (or arg (not last))
-                     (completing-read "Run config: " names nil t)
-                   last))
-         (template (cl-find-if (lambda (c) (string= (alist-get 'name c) choice)) configs)))
-    (unless template
-      (user-error "No run configuration found"))
-    ;; remember selected name
-    (setf (alist-get root ide-cpp-last-execute-template) choice)
-    ;; apply overlays (may prompt if ARG)
-    (setq template (ide-cpp-apply-launch-overlays template root arg))
-    ;; Execute using compile, in project root
-    (let* ((program (alist-get 'program template))
-           (args (alist-get 'args template))
-           (env (alist-get 'env template))
-           (cmd (mapconcat #'shell-quote-argument (cons program args) " ")))
-      (when env
-        (setq cmd (concat (mapconcat (lambda (kv)
-                                       (format "%s=%s" (car kv) (cdr kv)))
-                                     env " ")
-                          " " cmd)))
-      (let ((default-directory root))
-        (compile cmd)))))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; hydra menus
@@ -2615,8 +2582,8 @@ Otherwise reuse last chosen config and overlays for this project."
     ("n" (lambda (arg) (interactive "P") (ide-cpp-install-debug arg)) "Install")
     ("b" (lambda (arg) (interactive "P") (ide-cpp-build-debug arg)) "Build"))
    "Run / Debug"
-   (("r" (lambda (arg) (interactive "P") (ide-cpp-execute arg)) "Run" :color blue)
-    ("d" (lambda (arg) (interactive "P") (ide-cpp-debug arg)) "Debug" :color blue))
+   (("r" (lambda (arg) (interactive "P") (ide-common-launch-execute arg)) "Run" :color blue)
+    ("d" (lambda (arg) (interactive "P") (ide-common-debug-run-debugger arg)) "Debug" :color blue))
    "Breakpoints"
    (("T" dap-breakpoint-delete-all "Delete All")
     ("t" dap-breakpoint-toggle "toggle"))
@@ -2645,8 +2612,8 @@ Otherwise reuse last chosen config and overlays for this project."
     ("B" (lambda (arg) (interactive "P") (ide-cpp-build-debug arg)) "Build Release")
     ("b" (lambda (arg) (interactive "P") (ide-cpp-build-debug arg)) "Build Debug"))
    "Run / Debug"
-   (("r" (lambda (arg) (interactive "P") (ide-cpp-execute arg)) "Run" :color blue)
-    ("d" (lambda (arg) (interactive "P") (ide-cpp-debug arg)) "Debug" :color blue))
+   (("r" (lambda (arg) (interactive "P") (ide-common-launch-execute arg)) "Run" :color blue)
+    ("d" (lambda (arg) (interactive "P") (ide-common-debug-run-debugger arg)) "Debug" :color blue))
    "Breakpoints"
    (("T" dap-breakpoint-delete-all "Delete All")
     ("t" dap-breakpoint-toggle "toggle"))
