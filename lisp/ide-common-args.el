@@ -279,7 +279,7 @@ and project, with syntax-aware coloring."
          (choice (completing-read
                   (format "Select arguments profile for %s: " command)
                   profiles
-                  nil t nil nil default)))
+                  nil nil nil nil default)))
     ;; create profile if missing
     (unless (assoc choice (ide-common-args-get-profiles root command))
       (when (s-blank? choice)
