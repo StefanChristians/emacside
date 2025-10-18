@@ -581,9 +581,14 @@ If DEFAULT is also nil, return `ide-cpp-default-build-tree'."
   (let* ((project-root (if path
                            (ide-common-get-project-root path)
                          (ide-common-get-current-context-project-root)))
+         (compile-commands-file)
+         (is-symlink)
          (cached (ide-cpp-get-last-build-tree project-root))
          ;; only reuse cache if directory still exists
-         (build-tree (when (f-exists? (f-join project-root cached)) cached))
+         (build-tree (when
+                         (and cached
+                              (f-exists? (f-join project-root cached)))
+                       cached))
          (compile-commands-file (f-join project-root "compile_commands.json"))
          (is-symlink (f-symlink? compile-commands-file)))
 
@@ -2658,6 +2663,9 @@ With PREFIX, prompt for extra args"
      (with-no-warnings 'treemacs--mouse-project-list-functions)
      '("Create new C++ project" . ide-cpp-project-mouse-selection-menu)
      :append)))
+
+;; load persistent cache values
+(ide-cpp-load-cache)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
