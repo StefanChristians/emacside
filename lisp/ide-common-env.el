@@ -251,6 +251,7 @@ VARS is itself an alist of (NAME . VALUE).")
 
 (defun ide-common-env-select-and-edit (&optional project-root)
   "Select or create and edit a profile in PROJECT-ROOT."
+  (interactive)
   (when (ide-common-env-select-profile project-root)
     (ide-common-env-edit project-root)))
 
