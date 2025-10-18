@@ -503,7 +503,7 @@ They are handled separately."
   "Alist mapping project roots to their last build tree directories.")
 
 (defvar ide-cpp-last-build-tree-file
-  (f-join user-emacs-directory ".cache" "ide-build-tree.cache")
+  (f-join user-emacs-directory ".cache" "ide-build-tree.eld")
   "Path to file storing last build tree per project.")
 
 
