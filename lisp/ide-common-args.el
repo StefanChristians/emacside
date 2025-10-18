@@ -31,7 +31,7 @@ of (PROFILE-NAME . ARGS-LIST).
 ARGS-LIST is a list of strings representing command line arguments.")
 
 (defvar ide-common-args-cache-file
-  (f-join user-emacs-directory ".cache" "ide-args.el")
+  (f-join user-emacs-directory ".cache" "ide-args.eld")
   "Path to file used for persistent command argument cache.")
 
 ;; last profile cache
@@ -39,7 +39,7 @@ ARGS-LIST is a list of strings representing command line arguments.")
   "Alist mapping project roots to alists of (COMMAND . LAST-PROFILE).")
 
 (defvar ide-common-args-last-file
-  (f-join user-emacs-directory ".cache" "ide-args-last.el")
+  (f-join user-emacs-directory ".cache" "ide-args-last.eld")
   "Path to file storing last selected argument profile per command per project.")
 
 
