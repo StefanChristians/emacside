@@ -15,6 +15,7 @@
 ;;; Code:
 
 (require 'dap-mode)
+(require 'major-mode-hydra)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
