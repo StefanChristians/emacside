@@ -159,6 +159,7 @@ return nil instead."
   (setq ide-common-debug-last-debugger
         (assoc-delete-all project-root ide-common-debug-last-debugger))
   (ide-common-debug-save-last-debugger-cache))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; last executable getters and setters
