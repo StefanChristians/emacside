@@ -310,6 +310,19 @@ If PATH is a directory, return PATH."
   "Return active PATH relative to project root directory."
   (f-relative (ide-common-active-path path) (ide-common-get-project-root)))
 
+(defun ide-common-relative-path-if-descendant (candidate ancestor)
+  "Return relative path of CANDIDATE if descendant of ANCESTOR.
+
+If CANDIDATE is a descendant of ANCESTOR, return CANDIDATE's path relative
+to ANCESTOR.
+Otherwise, return absolute path to CANDIDATE."
+  (let* ((candidate (f-canonical candidate))
+         (ancestor (f-canonical ancestor))
+         (is-descendant (f-descendant-of? candidate ancestor)))
+    (if is-descendant
+        (f-relative candidate ancestor)
+      candidate)))
+
 (defun ide-common-locate-dominating-directory (file &optional path)
   "Return the directory containing the dominating FILE for PATH."
   (locate-dominating-file (ide-common-active-path path) file))
