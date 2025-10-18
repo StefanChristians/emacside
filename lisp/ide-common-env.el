@@ -32,7 +32,7 @@ Each value is an alist of (PROFILE-NAME . VARS).
 VARS is itself an alist of (NAME . VALUE).")
 
 (defvar ide-common-env-cache-file
-  (f-join user-emacs-directory ".cache" "ide-env.cache")
+  (f-join user-emacs-directory ".cache" "ide-env.eld")
   "Path to file used for persistent environment profile cache.")
 
 ;; last profile cache
@@ -40,7 +40,7 @@ VARS is itself an alist of (NAME . VALUE).")
   "Alist mapping project roots to last selected environment profile name.")
 
 (defvar ide-common-env-last-file
-  (f-join user-emacs-directory ".cache" "ide-env-last.cache")
+  (f-join user-emacs-directory ".cache" "ide-env-last.eld")
   "Path to file storing last selected environment profile per project.")
 
 
