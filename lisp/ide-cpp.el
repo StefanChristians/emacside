@@ -2664,7 +2664,7 @@ With PREFIX, prompt for extra args"
      '("Create new C++ project" . ide-cpp-project-mouse-selection-menu)
      :append)))
 
-;; load persistent cache values
+;; load persistent cache
 (ide-cpp-load-cache)
 
 
