@@ -117,18 +117,6 @@ macro(launch_generate)
       list(APPEND LAUNCH_CONFIGS "\$\{entry\}")
     endif()
 
-    # 1. Run (no debugger)
-    set(entry "    \{
-      \\"name\\": \\"run \$<PATH:RELATIVE_PATH,\$<TARGET_FILE:\$\{tgt\}>,\$\{CMAKE_BINARY_DIR\}>\\",
-      \\"type\\": \\"run\\",
-      \\"request\\": \\"launch\\",
-      \\"program\\": \\"\$<TARGET_FILE:\$\{tgt\}>\\",
-      \\"cwd\\": \\"\$<TARGET_FILE_DIR:\$\{tgt\}>\\",
-      \\"args\\": [],
-      \\"env\\": \{\}
-    \}")
-    list(APPEND LAUNCH_CONFIGS "\$\{entry\}")
-
   endforeach()
 
   # Join all configs with commas
