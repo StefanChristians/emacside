@@ -2609,7 +2609,7 @@ With PREFIX, prompt for extra args"
     ("p" (lambda (arg) (interactive "P") (ide-cpp-pack-debug arg)) "Pack Debug")
     ("N" (lambda (arg) (interactive "P") (ide-cpp-install-release arg)) "Install Release")
     ("n" (lambda (arg) (interactive "P") (ide-cpp-install-debug arg)) "Install Debug")
-    ("B" (lambda (arg) (interactive "P") (ide-cpp-build-debug arg)) "Build Release")
+    ("B" (lambda (arg) (interactive "P") (ide-cpp-build-release arg)) "Build Release")
     ("b" (lambda (arg) (interactive "P") (ide-cpp-build-debug arg)) "Build Debug"))
    "Run / Debug"
    (("r" (lambda (arg) (interactive "P") (ide-common-launch-execute arg)) "Run" :color blue)
