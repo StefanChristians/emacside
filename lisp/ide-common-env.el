@@ -221,7 +221,7 @@ VARS is itself an alist of (NAME . VALUE).")
                   (format "Select environment profile for %s: "
                           (f-filename root))
                   profiles
-                  nil t nil nil default)))
+                  nil nil nil nil default)))
     ;; create profile if missing
     (unless (assoc choice (ide-common-env-get-profiles root))
       (when (s-blank? choice)
