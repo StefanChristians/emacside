@@ -21,12 +21,11 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; persistent cache
+;;;; persistent cache (alist-based)
 
-;; args cache: project -> command -> (PROFILE-NAME . ARGS-LIST)
-(defvar ide-common-args-project-commands (make-hash-table :test 'equal)
-  "Hash table mapping projects to command argument profiles.
-Each value is a hash table mapping COMMAND strings to a list
+(defvar ide-common-args-project-commands '()
+  "Alist mapping projects to command argument profiles.
+Each value is an alist mapping COMMAND strings to a list
 of (PROFILE-NAME . ARGS-LIST).
 ARGS-LIST is a list of strings representing command line arguments.")
 
@@ -34,9 +33,8 @@ ARGS-LIST is a list of strings representing command line arguments.")
   (f-join user-emacs-directory ".cache" "ide-args.el")
   "Path to file used for persistent command argument cache.")
 
-;; last profile cache: project -> command -> PROFILE-NAME
-(defvar ide-common-args-last (make-hash-table :test 'equal)
-  "Hash table mapping project roots to command→last-profile tables.")
+(defvar ide-common-args-last '()
+  "Alist mapping project roots to alists of (COMMAND . LAST-PROFILE).")
 
 (defvar ide-common-args-last-file
   (f-join user-emacs-directory ".cache" "ide-args-last.el")
@@ -49,11 +47,9 @@ ARGS-LIST is a list of strings representing command line arguments.")
 (defun ide-common-args-load-cache ()
   "Load all argument caches from disk."
   (setq ide-common-args-project-commands
-        (or (ide-common-read-file ide-common-args-cache-file)
-            (make-hash-table :test 'equal)))
+        (or (ide-common-read-file ide-common-args-cache-file) '()))
   (setq ide-common-args-last
-        (or (ide-common-read-file ide-common-args-last-file)
-            (make-hash-table :test 'equal))))
+        (or (ide-common-read-file ide-common-args-last-file) '())))
 
 (defun ide-common-args-save-profile-cache ()
   "Save argument profiles cache to disk."
@@ -75,48 +71,62 @@ ARGS-LIST is a list of strings representing command line arguments.")
 ;;;; argument getters and setters
 
 (defun ide-common-args-get-command-table (project-root)
-  "Return command table for PROJECT-ROOT, or create one if missing."
-  (or (gethash project-root ide-common-args-project-commands)
-      (let ((table (make-hash-table :test 'equal)))
-        (puthash project-root table ide-common-args-project-commands)
-        table)))
+  "Return command table (alist) for PROJECT-ROOT, or create one if missing."
+  (let ((entry (assoc project-root ide-common-args-project-commands)))
+    (if entry
+        (cdr entry)
+      (let ((table '()))
+        (push (cons project-root table) ide-common-args-project-commands)
+        table))))
+
+(defun ide-common-args-set-command-table (project-root table)
+  "Set command TABLE for PROJECT-ROOT."
+  (setq ide-common-args-project-commands
+        (cons (cons project-root table)
+              (assoc-delete-all project-root ide-common-args-project-commands)))
+  (ide-common-args-save-profile-cache))
 
 (defun ide-common-args-get-profiles (project-root command)
-  "Return profile alist for COMMAND in PROJECT-ROOT.
-Each entry is (PROFILE-NAME . ARGS-LIST)."
-  (let ((cmd-table (ide-common-args-get-command-table project-root)))
-    (or (gethash command cmd-table) '())))
+  "Return profile alist for COMMAND in PROJECT-ROOT."
+  (let* ((cmd-table (ide-common-args-get-command-table project-root))
+         (entry (assoc command cmd-table)))
+    (or (cdr entry) '())))
 
 (defun ide-common-args-get-profile (project-root command profile)
   "Return ARGS-LIST for PROFILE under COMMAND in PROJECT-ROOT."
-  (alist-get profile (ide-common-args-get-profiles project-root command)
+  (alist-get profile
+             (ide-common-args-get-profiles project-root command)
              nil nil #'equal))
 
 (defun ide-common-args-set-profile (project-root command profile args)
   "Set ARGS as argument list for PROFILE under COMMAND in PROJECT-ROOT."
   (let* ((cmd-table (ide-common-args-get-command-table project-root))
          (profiles (ide-common-args-get-profiles project-root command))
-         (updated (assoc-delete-all profile profiles)))
-    (puthash command (cons (cons profile args) updated) cmd-table)
-    (ide-common-args-save-profile-cache)))
+         (updated (cons (cons profile args)
+                        (assoc-delete-all profile profiles)))
+         (new-table (cons (cons command updated)
+                          (assoc-delete-all command cmd-table))))
+    (ide-common-args-set-command-table project-root new-table)))
 
 (defun ide-common-args-unset-profile (project-root command profile)
   "Remove PROFILE for COMMAND in PROJECT-ROOT."
   (let* ((cmd-table (ide-common-args-get-command-table project-root))
          (profiles (ide-common-args-get-profiles project-root command))
-         (updated (assoc-delete-all profile profiles)))
-    (puthash command updated cmd-table)
-    (ide-common-args-save-profile-cache)))
+         (updated (assoc-delete-all profile profiles))
+         (new-table (cons (cons command updated)
+                          (assoc-delete-all command cmd-table))))
+    (ide-common-args-set-command-table project-root new-table)))
 
 (defun ide-common-args-unset-command (project-root command)
   "Remove all profiles for COMMAND in PROJECT-ROOT."
-  (let ((cmd-table (ide-common-args-get-command-table project-root)))
-    (remhash command cmd-table)
-    (ide-common-args-save-profile-cache)))
+  (let* ((cmd-table (ide-common-args-get-command-table project-root))
+         (new-table (assoc-delete-all command cmd-table)))
+    (ide-common-args-set-command-table project-root new-table)))
 
 (defun ide-common-args-unset-all (project-root)
   "Delete all argument profiles for PROJECT-ROOT."
-  (remhash project-root ide-common-args-project-commands)
+  (setq ide-common-args-project-commands
+        (assoc-delete-all project-root ide-common-args-project-commands))
   (ide-common-args-save-profile-cache))
 
 (defun ide-common-args-list-profile-names (project-root command)
@@ -129,22 +139,33 @@ Each entry is (PROFILE-NAME . ARGS-LIST)."
 ;;;; last used profile getters and setters
 
 (defun ide-common-args-get-last-table (project-root)
-  "Return hash table of last profiles for PROJECT-ROOT, creating it if needed."
-  (or (gethash project-root ide-common-args-last)
-      (let ((tbl (make-hash-table :test 'equal)))
-        (puthash project-root tbl ide-common-args-last)
-        tbl)))
+  "Return alist of last profiles for PROJECT-ROOT, creating it if needed."
+  (let ((entry (assoc project-root ide-common-args-last)))
+    (if entry
+        (cdr entry)
+      (let ((tbl '()))
+        (push (cons project-root tbl) ide-common-args-last)
+        tbl))))
+
+(defun ide-common-args-set-last-table (project-root table)
+  "Set last profile TABLE for PROJECT-ROOT."
+  (setq ide-common-args-last
+        (cons (cons project-root table)
+              (assoc-delete-all project-root ide-common-args-last)))
+  (ide-common-args-save-last-cache))
 
 (defun ide-common-args-get-last-profile (project-root command)
   "Return last used profile name for COMMAND under PROJECT-ROOT."
-  (let ((cmd-table (ide-common-args-get-last-table project-root)))
-    (or (gethash command cmd-table) "default")))
+  (let* ((cmd-table (ide-common-args-get-last-table project-root))
+         (entry (assoc command cmd-table)))
+    (or (cdr entry) "default")))
 
 (defun ide-common-args-set-last-profile (project-root command profile)
   "Set last used PROFILE name for COMMAND under PROJECT-ROOT."
-  (let ((cmd-table (ide-common-args-get-last-table project-root)))
-    (puthash command profile cmd-table)
-    (ide-common-args-save-last-cache)))
+  (let* ((cmd-table (ide-common-args-get-last-table project-root))
+         (new-table (cons (cons command profile)
+                          (assoc-delete-all command cmd-table))))
+    (ide-common-args-set-last-table project-root new-table)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -158,16 +179,15 @@ Each entry is (PROFILE-NAME . ARGS-LIST)."
 (defun ide-common-args-load-as-display-string (project-root command &optional profile)
   "Convert args list in PROFILE of COMMAND under PROJECT-ROOT to text."
   (let ((profile (or profile (ide-common-args-get-last-profile project-root command))))
-    (combine-and-quote-strings (ide-common-args-get-profile project-root
-                                                          command
-                                                          profile))))
+    (combine-and-quote-strings
+     (ide-common-args-get-profile project-root command profile))))
 
 (defun ide-common-args-load-as-shell-string (project-root command &optional profile)
   "Convert args list in PROFILE of COMMAND under PROJECT-ROOT to shell string."
   (let ((profile (or profile (ide-common-args-get-last-profile project-root command))))
-    (mapconcat #'shell-quote-argument (ide-common-args-get-profile project-root
-                                                                 command
-                                                                 profile))))
+    (mapconcat #'shell-quote-argument
+               (ide-common-args-get-profile project-root command profile)
+               " ")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
