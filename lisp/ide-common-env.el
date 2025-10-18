@@ -500,6 +500,13 @@ VARS is itself an alist of (NAME . VALUE).")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; bootstrap
+
+;; load persistent cache
+(ide-common-env-load-cache)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; end of file
 
 (provide 'ide-common-env)

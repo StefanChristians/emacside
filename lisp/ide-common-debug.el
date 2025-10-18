@@ -366,6 +366,13 @@ If SESSION is nil, use the current session."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; bootstrap
+
+;; load persistent cache
+(ide-common-debug-load-cache)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; end of file
 
 (provide 'ide-common-debug)

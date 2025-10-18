@@ -508,6 +508,13 @@ and project, with syntax-aware coloring."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; bootstrap
+
+;; load persistent cache
+(ide-common-args-load-cache)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; end of file
 
 (provide 'ide-common-args)

@@ -125,6 +125,13 @@ Otherwise reuse last chosen configuration."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; bootstrap
+
+;; load persistent cache
+(ide-common-launch-load-cache)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; end of file
 
 (provide 'ide-common-launch)
