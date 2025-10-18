@@ -17,6 +17,7 @@
 (require 'json)
 (require 'loop)
 (require 'cl-lib)
+(require 'dap-mode)
 (require 'yasnippet)
 (require 'major-mode-hydra)
 
@@ -2590,11 +2591,9 @@ Otherwise reuse last chosen config and overlays for this project."
 (defun ide-cpp-hydra-dispatch ()
   "Open appropriate hydra for C++ projects."
   (interactive)
-  (if (lsp-session-get-metadata "debug-sessions")
-      (hydra-ide-common-debug/body)
-    (if (ide-cpp-is-multi-config)
-        (hydra-ide-cpp-project-multi-config/body)
-      (hydra-ide-cpp-project-single-config/body))))
+  (if (ide-cpp-is-multi-config)
+      (hydra-ide-cpp-project-multi-config/body)
+    (hydra-ide-cpp-project-single-config/body)))
 
 (pretty-hydra-define hydra-ide-cpp-project-single-config
   (:title (concat
@@ -2622,8 +2621,8 @@ Otherwise reuse last chosen config and overlays for this project."
    (("T" dap-breakpoint-delete-all "Delete All")
     ("t" dap-breakpoint-toggle "toggle"))
    "Session"
-   (("X" ide-cpp-dap-disconnect-and-delete-all-sessions "Terminate All" :color blue)
-    ("x" ide-cpp-dap-disconnect-all-sessions "Disconnect All"))))
+   (("X" ide-common-debug-disconnect-and-delete-all-sessions "Terminate All" :color blue)
+    ("x" ide-common-debug-disconnect-all-sessions "Disconnect All"))))
 
 (pretty-hydra-define hydra-ide-cpp-project-multi-config
   (:title (concat
@@ -2652,8 +2651,8 @@ Otherwise reuse last chosen config and overlays for this project."
    (("T" dap-breakpoint-delete-all "Delete All")
     ("t" dap-breakpoint-toggle "toggle"))
    "Session"
-   (("X" ide-cpp-dap-disconnect-and-delete-all-sessions "Terminate All" :color blue)
-    ("x" ide-cpp-dap-disconnect-all-sessions "Disconnect All"))))
+   (("X" ide-common-debug-disconnect-and-delete-all-sessions "Terminate All" :color blue)
+    ("x" ide-common-debug-disconnect-all-sessions "Disconnect All"))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
