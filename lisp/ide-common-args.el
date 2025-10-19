@@ -301,14 +301,40 @@ and project, with syntax-aware coloring."
   (let* ((root (or project-root (ide-common-get-current-context-project-root)))
          (profile (ide-common-args-get-last-profile root command))
          (buf-name (format "*%s→%s [%s]*"
-                           (f-filename root) command profile)))
-    (with-current-buffer (get-buffer-create buf-name)
+                           (f-filename root) command profile))
+         (buf (get-buffer-create buf-name))
+         result)
+    ;; Prepare buffer
+    (with-current-buffer buf
       (ide-common-args-mode)
-      (setq ide-common-args-current-project root)
-      (setq ide-common-args-current-command command)
-      (setq ide-common-args-current-profile profile)
+      (setq ide-common-args-current-project root
+            ide-common-args-current-command command
+            ide-common-args-current-profile profile)
       (ide-common-args-refresh)
-      (switch-to-buffer (current-buffer)))))
+
+      ;; Hook to exit recursive edit if buffer is killed externally
+      (add-hook 'kill-buffer-hook
+                (lambda ()
+                  (when (> (recursion-depth) 0)
+                    (throw 'exit nil)))
+                nil t))
+
+    ;; Display buffer and enter blocking recursive edit
+    (pop-to-buffer buf)
+    (recursive-edit)
+
+    ;; remember result while buffer-local variables are still available
+    (with-current-buffer buf
+      (setq result (ide-common-args-get-profile
+                    ide-common-args-current-project
+                    ide-common-args-current-command
+                    ide-common-args-current-profile)))
+
+    ;; Cleanup buffer after recursive edit
+    (when (buffer-live-p buf)
+      (kill-buffer buf))
+
+    result))
 
 (defun ide-common-args-select-and-edit (command &optional project-root)
   "Select or create and edit a profile for COMMAND in PROJECT-ROOT."
@@ -470,13 +496,16 @@ and project, with syntax-aware coloring."
     ide-common-args-current-profile))
 
 (defun ide-common-args-close()
-  "Quit the arguments editor."
-  (quit-window t))
+  "Close the arguments editor and continue execution."
+  (interactive)
+  ;; exit from recursive edit
+  (throw 'exit nil))
 
 (defun ide-common-args-save-and-close()
-  "Save and close the arguments editor."
+  "Save and close the arguments editor and continue."
+  (interactive)
   (ide-common-args-save-buffer)
-  (ide-common-args-close))
+  (throw 'exit nil))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -501,7 +530,7 @@ and project, with syntax-aware coloring."
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c a") #'hydra-ide-common-args/body)
     (define-key map (kbd "C-c C-c") #'ide-common-args-save-and-close)
-    (define-key map (kbd "C-c C-k") #'ide-common-args-cancel-and-close)
+    (define-key map (kbd "C-c C-k") #'ide-common-args-close)
     map))
 
 (setq ide-common-args-mode-map (ide-common-args-setup-keymap))
