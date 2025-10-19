@@ -923,7 +923,8 @@ DO-PROMPT if none-nil, prompt user for arguments profile,
           otherwise last selected profile for COMMAND is used"
   (let ((default-directory project-root)
         (process-environment (append (ide-common-env-load-as-list project-root) process-environment))
-        (compilation-buffer-name-function (lambda (_) (format "*compile %s*" (f-filename project-root)))))
+        (compilation-buffer-name-function (lambda (_) (format "*compile %s*" (f-filename project-root))))
+        (compilation-scroll-output 'first-error))
     (when do-prompt
       (ide-common-args-select-and-edit command project-root))
     (let ((args1 (mapconcat #'shell-quote-argument base-args " "))
