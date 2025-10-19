@@ -512,7 +512,7 @@ and project, with syntax-aware coloring."
 ;;;; key bindings
 
 (pretty-hydra-define hydra-ide-common-args
-  (:title  (format "%s Argument Profiles" (all-the-icons-material "list_alt"))
+  (:title  (format "%s Argument Profiles" (all-the-icons-material "format_list_bulleted"))
           :color teal
           :quit-key ("q" "ESC"))
   ("Profiles"
