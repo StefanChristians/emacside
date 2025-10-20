@@ -567,6 +567,32 @@ ARGS optional arguments for filling yasnippet fields"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; user interaction
 
+(defun ide-common-list-all-the-icons-material ()
+  "Display all material icons ."
+  (interactive)
+  (require 'all-the-icons)
+  (let* ((icons (symbol-value 'all-the-icons-data/material-icons-alist))
+         (half (ceiling (/ (length icons) 2.0)))
+         (left (cl-subseq icons 0 half))
+         (right (cl-subseq icons half))
+         (col-width 36)) ;; adjust for spacing between columns
+    (with-current-buffer (get-buffer-create "*Material Icons*")
+      (setq buffer-read-only nil)
+      (erase-buffer)
+      (insert (format "Material Icons (%d total)\n\n" (length icons)))
+      (dotimes (i half)
+        (let* ((l (nth i left))
+               (r (nth i right))
+               (left-str (format "%s  %-25s" (cdr l) (car l)))
+               (right-str (when r (format "%s  %-25s" (cdr r) (car r)))))
+          ;; pad left column manually
+          (insert (format "%s%s\n"
+                          (truncate-string-to-width left-str col-width nil ?\s)
+                          (or right-str "")))))
+      (goto-char (point-min))
+      (special-mode)
+      (pop-to-buffer (current-buffer)))))
+
 (defun ide-common-maybe-prompt (prompt value default
                                        &optional use-defaults dont-ask
                                        collection restrict
