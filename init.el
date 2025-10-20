@@ -1075,7 +1075,7 @@
 
 ;; behavior
 (pretty-hydra-define behavior
-  (:title (format "%s Behavior" (all-the-icons-material "engineering"))
+  (:title (format "%s Behavior" (all-the-icons-material "touch_app"))
           :exit nil :foreign-keys warn :quit-key ("q" "ESC"))
   ("White space"
    (("f" (setq-local require-final-newline (not require-final-newline)) "add final newline" :toggle require-final-newline)
@@ -1110,7 +1110,7 @@
 
 ;; inflection
 (pretty-hydra-define inflection
-  (:title (format "%s Inflection" (all-the-icons-material "match_case"))
+  (:title (format "%s Inflection" (all-the-icons-material "text_format"))
           :exit nil :foreign-keys nil :quit-key ("q" "ESC"))
   ("String inflection"
    (("i" string-inflection-all-cycle "cycle")

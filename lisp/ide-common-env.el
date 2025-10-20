@@ -462,7 +462,7 @@ VARS is itself an alist of (NAME . VALUE).")
 ;;;; key bindings
 
 (pretty-hydra-define hydra-ide-common-env
-  (:title  (format "%s Environment Profiles" (all-the-icons-material "nature"))
+  (:title  (format "%s Environment Profiles" (all-the-icons-material "nature_people"))
           :color teal
           :quit-key ("q" "ESC"))
   ("Profiles"
