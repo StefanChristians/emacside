@@ -26,86 +26,101 @@
 ;;;; persistent cache
 
 ;; environment cache
-(defvar ide-common-env-project-profiles nil
-  "Alist mapping project roots to environment profile alists.
-Each value is an alist of (PROFILE-NAME . VARS).
-VARS is itself an alist of (NAME . VALUE).")
+(defvar ide-common-env-profiles nil
+  "Mapping of environment profiles to projects.
 
-(defvar ide-common-env-cache-file
-  (f-join user-emacs-directory ".cache" "ide-common-env-project-profiles.eld")
-  "Path to file used for persistent environment profile cache.")
+Alist of (PROJECT . (PROFILES)) pairs.
+PROFILES is an alist of (PROFILE . (VARS)) pairs.
+VARS is an alist of (NAME . VALUE) pairs.
 
-;; last profile cache
-(defvar ide-common-env-last-profile nil
-  "Alist mapping project roots to last selected environment profile name.")
+\((project1 . ((profile1 . ((var1 . value1) (var2 . value2))))))")
 
-(defvar ide-common-env-last-profile-file
-  (f-join user-emacs-directory ".cache" "ide-common-env-last-profile.eld")
-  "Path to file storing last selected environment profile per project.")
+(defvar ide-common-env-profiles-file
+  (f-join user-emacs-directory ".cache" "ide-common-env-profiles.eld")
+  "Path to file used for persistent environment cache.")
+
+;; current profile cache
+(defvar ide-common-env-current nil
+  "Mapping of currently used environment profile to project.
+
+Alist of (PROJECT . PROFILE) pairs.
+
+\((project1 . profile1) (project2 profile2))")
+
+(defvar ide-common-env-current-file
+  (f-join user-emacs-directory ".cache" "ide-common-env-current.eld")
+  "Path to file used for current profile cache.")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; cache maintenance
 
-(defun ide-common-env-load-cache ()
+(defun ide-common-env-load-all ()
   "Load all environment caches from disk."
-  (setq ide-common-env-project-profiles
-        (or (ide-common-read-file ide-common-env-cache-file)
+  (setq ide-common-env-profiles
+        (or (ide-common-read-file ide-common-env-profiles-file)
             nil))
-  (setq ide-common-env-last-profile
-        (or (ide-common-read-file ide-common-env-last-profile-file)
+  (setq ide-common-env-current
+        (or (ide-common-read-file ide-common-env-current-file)
             nil)))
 
-(defun ide-common-env-save-profile-cache ()
-  "Save environment profiles cache to disk."
-  (ide-common-write-file ide-common-env-cache-file
-                         ide-common-env-project-profiles))
+(defun ide-common-env-save-profiles ()
+  "Save environment profiles to disk."
+  (ide-common-write-file ide-common-env-profiles-file
+                         ide-common-env-profiles))
 
-(defun ide-common-env-save-last-cache ()
-  "Save last used profile cache to disk."
-  (ide-common-write-file ide-common-env-last-profile-file
-                         ide-common-env-last-profile))
+(defun ide-common-env-save-current ()
+  "Save current profiles to disk."
+  (ide-common-write-file ide-common-env-current-file
+                         ide-common-env-current))
 
-(defun ide-common-env-save-cache ()
+(defun ide-common-env-save-all ()
   "Save all environment caches to disk."
-  (ide-common-env-save-profile-cache)
-  (ide-common-env-save-last-cache))
+  (ide-common-env-save-profiles)
+  (ide-common-env-save-current))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; environment getters and setters
 
 (defun ide-common-env-get-profiles (project-root)
-  "Return profile alist for PROJECT-ROOT."
-  (alist-get project-root ide-common-env-project-profiles nil nil #'string=))
+  "Return PROFILES for PROJECT-ROOT.
+
+PROFILES is an alist of (PROFILE . (VARS)) pairs.
+VARS is an alist of (NAME . VALUE) pairs."
+  (alist-get project-root ide-common-env-profiles nil nil #'string=))
 
 (defun ide-common-env-get-profile (project-root profile)
-  "Return VARS alist for PROFILE under PROJECT-ROOT."
-  (alist-get profile
-             (ide-common-env-get-profiles project-root)
-             nil nil #'equal))
+  "Return VARS for PROFILE under PROJECT-ROOT.
+
+VARS is an alist of (NAME . VALUE) pairs."
+  (let ((profiles (ide-common-env-get-profiles project-root)))
+    (alist-get profile profiles nil nil #'string=)))
 
 (defun ide-common-env-set-profile (project-root profile vars)
-  "Set VARS as environment alist for PROFILE in PROJECT-ROOT."
-  (let* ((profiles (ide-common-env-get-profiles project-root))
-         (updated (assoc-delete-all profile profiles)))
-    (setf (alist-get project-root ide-common-env-project-profiles nil nil #'string=)
-          (cons (cons profile vars) updated))
-    (ide-common-env-save-profile-cache)))
+  "Set VARS for PROFILE under PROJECT-ROOT.
+
+VARS is an alist of (NAME . VALUE) pairs."
+  (setf (alist-get
+         profile
+         (alist-get project-root ide-common-env-profiles nil nil #'string=)
+         nil nil #'string=)
+        vars)
+  (ide-common-env-save-profiles))
 
 (defun ide-common-env-unset-profile (project-root profile)
   "Remove PROFILE from PROJECT-ROOT."
   (let* ((profiles (ide-common-env-get-profiles project-root))
          (updated (assoc-delete-all profile profiles)))
-    (setf (alist-get project-root ide-common-env-project-profiles nil nil #'string=)
+    (setf (alist-get project-root ide-common-env-profiles nil nil #'string=)
           updated)
-    (ide-common-env-save-profile-cache)))
+    (ide-common-env-save-profiles)))
 
 (defun ide-common-env-unset-all (project-root)
-  "Delete all environment profiles for PROJECT-ROOT."
-  (setq ide-common-env-project-profiles
-        (assoc-delete-all project-root ide-common-env-project-profiles #'string=))
-  (ide-common-env-save-profile-cache))
+  "Delete all profiles for PROJECT-ROOT."
+  (setq ide-common-env-profiles
+        (assoc-delete-all project-root ide-common-env-profiles #'string=))
+  (ide-common-env-save-profiles))
 
 (defun ide-common-env-list-profile-names (project-root)
   "Return list of profile names for PROJECT-ROOT."
@@ -114,18 +129,18 @@ VARS is itself an alist of (NAME . VALUE).")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; last used profile getters and setters
+;;;; current profile getters and setters
 
-(defun ide-common-env-get-last-profile (project-root)
+(defun ide-common-env-get-current-profile (project-root)
   "Return last used profile name for PROJECT-ROOT."
-  (or (alist-get project-root ide-common-env-last-profile nil nil #'string=)
+  (or (alist-get project-root ide-common-env-current nil nil #'string=)
       "default"))
 
-(defun ide-common-env-set-last-profile (project-root profile)
+(defun ide-common-env-set-current-profile (project-root profile)
   "Set last used PROFILE name for PROJECT-ROOT."
-  (setf (alist-get project-root ide-common-env-last-profile nil nil #'string=)
+  (setf (alist-get project-root ide-common-env-current nil nil #'string=)
         profile)
-  (ide-common-env-save-last-cache))
+  (ide-common-env-save-current))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -133,7 +148,7 @@ VARS is itself an alist of (NAME . VALUE).")
 
 (defun ide-common-env-load-as-list (project-root &optional profile)
   "Convert alist in PROFILE under PROJECT-ROOT to list of strings like NAME=VALUE."
-  (let ((profile (or profile (ide-common-env-get-last-profile project-root))))
+  (let ((profile (or profile (ide-common-env-get-current-profile project-root))))
     (mapcar (lambda (pair)
               (format "%s=%s" (car pair) (cdr pair)))
             (ide-common-env-get-profile project-root profile))))
@@ -203,6 +218,7 @@ VARS is itself an alist of (NAME . VALUE).")
                                      marginalia-environment-profile-plain
                                      none)))
 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; actions
@@ -210,11 +226,11 @@ VARS is itself an alist of (NAME . VALUE).")
 (defun ide-common-env-select-profile (&optional project-root)
   "Select or create a profile for PROJECT-ROOT."
   (interactive)
-  (ide-common-env-load-cache)
+  (ide-common-env-load-all)
   (let* ((root (or project-root
                    (ide-common-get-current-context-project-root)))
          (profiles (sort (ide-common-env-list-profile-names root) #'string<))
-         (default  (ide-common-env-get-last-profile root))
+         (default  (ide-common-env-get-current-profile root))
          ;; pass category to completion frameworks via completion-extra-properties
          (completion-extra-properties `(:category environment-profile :project-root ,root))
          (choice (completing-read
@@ -228,7 +244,7 @@ VARS is itself an alist of (NAME . VALUE).")
         (user-error "Profile name cannot be empty"))
       (ide-common-env-set-profile root choice nil))
     ;; save last selected
-    (ide-common-env-set-last-profile root choice)
+    (ide-common-env-set-current-profile root choice)
     (message "Profile %s selected." choice)
     choice))
 
@@ -238,9 +254,9 @@ VARS is itself an alist of (NAME . VALUE).")
 (defun ide-common-env-edit (&optional project-root)
   "Open environment editor for PROJECT-ROOT."
   (interactive)
-  (ide-common-env-load-cache)
+  (ide-common-env-load-all)
   (let* ((root (or project-root (ide-common-get-current-context-project-root)))
-         (profile (ide-common-env-get-last-profile root))
+         (profile (ide-common-env-get-current-profile root))
          (buf-name (format "*%s [%s]*" (f-filename root) profile)))
     (with-current-buffer (get-buffer-create buf-name)
       (ide-common-env-mode)
@@ -374,7 +390,7 @@ VARS is itself an alist of (NAME . VALUE).")
     ;; clone the profile
     (ide-common-env-set-profile root dest (copy-alist (ide-common-env-get-profile root source)))
     ;; update last used and current profile
-    (ide-common-env-set-last-profile root dest)
+    (ide-common-env-set-current-profile root dest)
     (setq ide-common-env-current-profile dest)
     (message "Cloned and switched to profile %s → %s" source dest)
     (rename-buffer (format "*%s [%s]*"
@@ -399,7 +415,7 @@ VARS is itself an alist of (NAME . VALUE).")
     (ide-common-env-unset-profile root source)
 
     ;; update last used and current profile
-    (ide-common-env-set-last-profile root dest)
+    (ide-common-env-set-current-profile root dest)
     (setq ide-common-env-current-profile dest)
     (message "Renamed profile %s → %s" source dest)
     (rename-buffer (format "*%s [%s]*"
@@ -422,7 +438,7 @@ VARS is itself an alist of (NAME . VALUE).")
       (setq ide-common-env-current-profile (ide-common-env-select-profile root))
 
       ;; update last used and current profile
-      (ide-common-env-set-last-profile root ide-common-env-current-profile)
+      (ide-common-env-set-current-profile root ide-common-env-current-profile)
       (message "Deleted and switched to profile %s → %s" source ide-common-env-current-profile)
       (rename-buffer (format "*%s [%s]*"
                              (f-filename root)
@@ -444,7 +460,7 @@ VARS is itself an alist of (NAME . VALUE).")
       (setq ide-common-env-current-profile "default")
 
       ;; update last used and current profile
-      (ide-common-env-set-last-profile root ide-common-env-current-profile)
+      (ide-common-env-set-current-profile root ide-common-env-current-profile)
       (message "Deleted all profiles, switched to %s" ide-common-env-current-profile)
       (rename-buffer (format "*%s [%s]*"
                              (f-filename root)
@@ -504,7 +520,7 @@ VARS is itself an alist of (NAME . VALUE).")
 ;;;; bootstrap
 
 ;; load persistent cache
-(ide-common-env-load-cache)
+(ide-common-env-load-all)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
