@@ -142,6 +142,12 @@ VARS is an alist of (NAME . VALUE) pairs."
         profile)
   (ide-common-env-save-current))
 
+(defun ide-common-env-unset-current-profile (project-root)
+  "Remove cached PROFILE for PROJECT-ROOT."
+  (setq ide-common-env-current
+        (assq-delete-all project-root ide-common-env-current))
+  (ide-common-env-save-current))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; conversions
