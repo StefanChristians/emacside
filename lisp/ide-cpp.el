@@ -499,52 +499,56 @@ They are handled separately."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; persistent cache
 
-;; last build tree cache
-(defvar ide-cpp-last-build-tree nil
-  "Alist mapping project roots to their last build tree directories.")
+;; current build tree cache
+(defvar ide-cpp-buildtree-current nil
+  "Mapping of currently used buildtree to project.
 
-(defvar ide-cpp-last-build-tree-file
-  (f-join user-emacs-directory ".cache" "ide-cpp-last-build-tree.eld")
-  "Path to file storing last build tree per project.")
+Alist of (PROJECT . BUILDTREE) pairs.
+
+\((project1 . buildtree1) (project2 . buildtree2))")
+
+(defvar ide-cpp-buildtree-current-file
+  (f-join user-emacs-directory ".cache" "ide-cpp-buildtree.eld")
+  "Path to file used for current buildtree cache.")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; cache maintenance
 
-(defun ide-cpp-load-cache ()
+(defun ide-cpp-load-all ()
   "Load all C++ caches from disk."
-  (setq ide-cpp-last-build-tree
-        (or (ide-common-read-file ide-cpp-last-build-tree-file)
+  (setq ide-cpp-buildtree-current
+        (or (ide-common-read-file ide-cpp-buildtree-current-file)
             nil)))
 
-(defun ide-cpp-save-last-build-tree-cache ()
+(defun ide-cpp-buildtree-save-cache ()
   "Save last used build tree cache to disk."
-  (ide-common-write-file ide-cpp-last-build-tree-file
-                         ide-cpp-last-build-tree))
+  (ide-common-write-file ide-cpp-buildtree-current-file
+                         ide-cpp-buildtree-current))
 
-(defun ide-cpp-save-cache ()
+(defun ide-cpp-save-all ()
   "Save all C++ caches to disk."
-  (ide-cpp-save-last-build-tree-cache))
+  (ide-cpp-buildtree-save-cache))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; last build tree getters and setters
 
-(defun ide-cpp-get-last-build-tree (project-root)
+(defun ide-cpp-buildtree-get-cache (project-root)
   "Return last build tree for PROJECT-ROOT."
-  (alist-get project-root ide-cpp-last-build-tree nil nil #'string=))
+  (alist-get project-root ide-cpp-buildtree-current nil nil #'string=))
 
-(defun ide-cpp-set-last-build-tree (project-root build-dir)
+(defun ide-cpp-buildtree-set-cache (project-root build-dir)
   "Set last used BUILD-DIR for PROJECT-ROOT."
-  (setf (alist-get project-root ide-cpp-last-build-tree nil nil #'string=)
+  (setf (alist-get project-root ide-cpp-buildtree-current nil nil #'string=)
         build-dir)
-  (ide-cpp-save-last-build-tree-cache))
+  (ide-cpp-buildtree-save-cache))
 
-(defun ide-cpp-unset-last-build-tree (project-root)
+(defun ide-cpp-buildtree-unset-cache (project-root)
   "Remove cached build tree for PROJECT-ROOT."
-  (setq ide-cpp-last-build-tree
-        (assq-delete-all project-root ide-cpp-last-build-tree))
-  (ide-cpp-save-last-build-tree-cache))
+  (setq ide-cpp-buildtree-current
+        (assq-delete-all project-root ide-cpp-buildtree-current))
+  (ide-cpp-buildtree-save-cache))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -581,9 +585,7 @@ If DEFAULT is also nil, return `ide-cpp-default-build-tree'."
   (let* ((project-root (if path
                            (ide-common-get-project-root path)
                          (ide-common-get-current-context-project-root)))
-         (compile-commands-file)
-         (is-symlink)
-         (cached (ide-cpp-get-last-build-tree project-root))
+         (cached (ide-cpp-buildtree-get-cache project-root))
          ;; only reuse cache if directory still exists
          (build-tree (when
                          (and cached
@@ -649,7 +651,7 @@ If DEFAULT is also nil, return `ide-cpp-default-build-tree'."
                 candidate)))
 
       ;; update cache
-      (ide-cpp-set-last-build-tree project-root build-tree))
+      (ide-cpp-buildtree-set-cache project-root build-tree))
 
     ;; return cached or computed result
     (or build-tree default ide-cpp-default-build-directory)))
@@ -2434,7 +2436,7 @@ If called with PREFIX (usually `C-u`), prompt for extra arguments."
              (when (and tree (f-exists? tree))
                (message "Deleting existing build tree: %s" tree)
                (f-delete tree t)))
-           (ide-cpp-unset-last-build-tree project-root)))
+           (ide-cpp-buildtree-unset-cache project-root)))
       ;; first pass
       (cleanup-pass project-root nil)
       (cleanup-pass project-root final-build-tree)
@@ -2454,7 +2456,7 @@ If called with PREFIX (usually `C-u`), prompt for extra arguments."
       ;; so /project-root/ build --> /project-root/build
       ;; but /project-root/ /tmp/build --> /tmp/build
       (f-mkdir (f-join project-root final-build-tree)))
-    (ide-cpp-set-last-build-tree project-root final-build-tree)
+    (ide-cpp-buildtree-set-cache project-root final-build-tree)
 
     ;; phase 3: configure new build tree
     (message "Initializing fresh %s build tree: %s"
@@ -2665,7 +2667,7 @@ With PREFIX, prompt for extra args"
      :append)))
 
 ;; load persistent cache
-(ide-cpp-load-cache)
+(ide-cpp-load-all)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
