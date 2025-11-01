@@ -45,7 +45,7 @@ VARS is an alist of (NAME . VALUE) pairs.
 
 Alist of (PROJECT . PROFILE) pairs.
 
-\((project1 . profile1) (project2 profile2))")
+\((project1 . profile1) (project2 . profile2))")
 
 (defvar ide-common-env-current-file
   (f-join user-emacs-directory ".cache" "ide-common-env-current.eld")
