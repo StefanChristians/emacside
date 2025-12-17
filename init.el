@@ -703,6 +703,12 @@
   :config
   (prescient-persist-mode t))
 
+;; python
+;; Python's flying circus support for Emacs
+(use-package python
+  :custom
+  (python-indent-guess-indent-offset-verbose nil))
+
 ;;;; packages QQQQQQQQQQQQQQQQQQQQQQQQQQ
 
 ;;;; packages RRRRRRRRRRRRRRRRRRRRRRRRRR
