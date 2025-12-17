@@ -49,137 +49,85 @@ The adapter will only be registered if both:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; persistent cache
 
-;; last debugger cache
-(defvar ide-common-debug-last-debugger '()
-  "Alist mapping PROJECT-ROOT → (EXECUTABLE . DEBUGGER-NAME).
-Each PROJECT-ROOT entry holds an alist of executables to their last used
-debugger name.")
+;; debugger cache
+(defvar ide-common-debug-debuggers nil
+  "Mapping of debuggers to executables in projects.
 
-(defvar ide-common-debug-last-debugger-file
-  (f-join user-emacs-directory ".cache" "ide-common-debug-last-debugger.eld")
-  "Path to file storing last debugger per executable per project.")
+Alist of (PROJECT . (EXECUTABLES)) pairs.
+EXECUTABLES is an alist of (EXECUTABLE . DEBUGGER) pairs.
 
-;; last debugged executable cache
-(defvar ide-common-debug-last-executable '()
-  "Alist mapping PROJECT-ROOT → last debugged EXECUTABLE.")
+\((project1 . ((executable1 . debugger1) (executable2 . debugger2))))")
 
-(defvar ide-common-debug-last-executable-file
-  (f-join user-emacs-directory ".cache" "ide-common-debug-last-executable.eld")
-  "Path to file storing last debugged executable per project.")
+(defvar ide-common-debug-debuggers-file
+  (f-join user-emacs-directory ".cache" "ide-common-debug.eld")
+  "Path to file used for persistent debugger cache.")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; cache maintenance
 
-(defun ide-common-debug-load-cache ()
+(defun ide-common-debug-load-all ()
   "Load all debug caches from disk."
-  (setq ide-common-debug-last-debugger
-        (or (ide-common-read-file ide-common-debug-last-debugger-file) '()))
-  (setq ide-common-debug-last-executable
-        (or (ide-common-read-file ide-common-debug-last-executable-file) '())))
+  (setq ide-common-debug-debuggers
+        (ide-common-read-file ide-common-debug-debuggers-file)))
 
-(defun ide-common-debug-save-last-debugger-cache ()
+(defun ide-common-debug-save-debugger ()
   "Save last used debugger cache to disk."
-  (ide-common-write-file ide-common-debug-last-debugger-file
-                         ide-common-debug-last-debugger))
+  (ide-common-write-file ide-common-debug-debuggers-file
+                         ide-common-debug-debuggers))
 
-(defun ide-common-debug-save-last-executable-cache ()
-  "Save last debugged executable cache to disk."
-  (ide-common-write-file ide-common-debug-last-executable-file
-                         ide-common-debug-last-executable))
-
-(defun ide-common-debug-save-cache ()
+(defun ide-common-debug-save-all ()
   "Save all debug caches to disk."
-  (ide-common-debug-save-last-debugger-cache)
-  (ide-common-debug-save-last-executable-cache))
+  (ide-common-debug-save-debugger))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; last debugger getters and setters
+;;;; current debugger getters and setters
 
-(defun ide-common-debug-get-last-table (project-root)
-  "Return alist of executables for PROJECT-ROOT, creating it if needed."
-  (let ((entry (assoc project-root ide-common-debug-last-debugger)))
-    (if entry
-        (cdr entry)
-      (let ((tbl '()))
-        (push (cons project-root tbl) ide-common-debug-last-debugger)
-        tbl))))
+(defun ide-common-debug-get-executables (project-root)
+  "Return EXECUTABLES in PROJECT-ROOT.
 
-(defun ide-common-debug-set-last-table (project-root table)
-  "Replace executable TABLE for PROJECT-ROOT in cache."
-  (setq ide-common-debug-last-debugger
-        (cons (cons project-root table)
-              (assoc-delete-all project-root ide-common-debug-last-debugger)))
-  (ide-common-debug-save-last-debugger-cache))
+EXECUTABLES is an alist of (EXECUTABLE . DEBUGGER) pairs."
+  (alist-get project-root ide-common-debug-debuggers nil nil #'string=))
 
-(defun ide-common-debug-get-last-debugger (project-root executable)
-  "Return last used debugger name for EXECUTABLE under PROJECT-ROOT.
+(defun ide-common-debug-get-debugger (project-root executable)
+  "Return debugger for EXECUTABLE in PROJECT-ROOT."
+  (let ((executable (ide-common-relative-path-if-descendant executable project-root)))
+    (alist-get executable (ide-common-debug-get-executables project-root) nil nil #'string=)))
 
-If the stored name does not exist in `ide-common-debug-adapters',
-return nil instead."
-  (let* ((exe-table (ide-common-debug-get-last-table project-root))
-         (name (cdr (assoc executable exe-table))))
-    (when (and name
-               (not (assoc name ide-common-debug-adapters)))
-      ;; Stored name no longer valid → unset it
-      (ide-common-debug-unset-debugger-for-executable project-root executable)
-      (setq name nil))
-    name))
-
-(defun ide-common-debug-get-last-binary (project-root executable)
-  "Return binary of last used debugger for EXECUTABLE under PROJECT-ROOT."
-  (let* ((name (ide-common-debug-get-last-debugger project-root executable))
+(defun ide-common-debug-get-binary (project-root executable)
+  "Return binary of debugger for EXECUTABLE in PROJECT-ROOT."
+  (let* ((name (ide-common-debug-get-debugger project-root executable))
          (entry (assoc name ide-common-debug-adapters)))
     (when entry
       (plist-get (cdr entry) :binary))))
 
-(defun ide-common-debug-get-last-type (project-root executable)
-  "Return type of last used debugger for EXECUTABLE under PROJECT-ROOT."
-  (let* ((name (ide-common-debug-get-last-debugger project-root executable))
+(defun ide-common-debug-get-type (project-root executable)
+  "Return type of debugger for EXECUTABLE in PROJECT-ROOT."
+  (let* ((name (ide-common-debug-get-debugger project-root executable))
          (entry (assoc name ide-common-debug-adapters)))
     (when entry
       (plist-get (cdr entry) :type))))
 
-(defun ide-common-debug-set-last-debugger (project-root executable name)
-  "Set last used debugger NAME for EXECUTABLE under PROJECT-ROOT."
-  (let* ((exe-table (ide-common-debug-get-last-table project-root))
-         (new-table (cons (cons executable name)
-                          (assoc-delete-all executable exe-table))))
-    (ide-common-debug-set-last-table project-root new-table)))
+(defun ide-common-debug-set-debugger (project-root executable debugger-name)
+  "Set DEBUGGER-NAME for EXECUTABLE in PROJECT-ROOT."
+  (let ((executable (ide-common-relative-path-if-descendant executable project-root)))
+    (setf (alist-get executable (alist-get project-root ide-common-debug-debuggers nil nil #'string=) nil nil #'string=) debugger-name)
+    (ide-common-debug-save-debugger)))
 
-(defun ide-common-debug-unset-debugger-for-executable (project-root executable)
-  "Remove last debugger for EXECUTABLE in PROJECT-ROOT."
-  (let* ((exe-table (ide-common-debug-get-last-table project-root))
-         (new-table (assoc-delete-all executable exe-table)))
-    (ide-common-debug-set-last-table project-root new-table)))
+(defun ide-common-debug-unset-executable (project-root executable)
+  "Remove debugger for EXECUTABLE in PROJECT-ROOT."
+  (let* ((executable (ide-common-relative-path-if-descendant executable project-root))
+         (executables (ide-common-debug-get-executables project-root))
+         (updated (assoc-delete-all executable executables)))
+    (setf (alist-get project-root ide-common-debug-debuggers nil nil #'string=) updated)
+    (ide-common-debug-save-debugger)))
 
-(defun ide-common-debug-unset-all-debuggers (project-root)
-  "Delete all last debuggers for all executables in PROJECT-ROOT."
-  (setq ide-common-debug-last-debugger
-        (assoc-delete-all project-root ide-common-debug-last-debugger))
-  (ide-common-debug-save-last-debugger-cache))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; last executable getters and setters
-
-(defun ide-common-debug-get-last-executable (project-root)
-  "Return last debugged executable for PROJECT-ROOT, or nil if none."
-  (cdr (assoc project-root ide-common-debug-last-executable)))
-
-(defun ide-common-debug-set-last-executable (project-root executable)
-  "Set last debugged EXECUTABLE for PROJECT-ROOT."
-  (setq ide-common-debug-last-executable
-        (cons (cons project-root executable)
-              (assoc-delete-all project-root ide-common-debug-last-executable)))
-  (ide-common-debug-save-last-executable-cache))
-
-(defun ide-common-debug-unset-last-executable (project-root)
-  "Remove cached last debugged executable for PROJECT-ROOT."
-  (setq ide-common-debug-last-executable
-        (assoc-delete-all project-root ide-common-debug-last-executable))
-  (ide-common-debug-save-last-executable-cache))
+(defun ide-common-debug-unset-all (project-root)
+  "Delete all debuggers for PROJECT-ROOT."
+  (setq ide-common-debug-debuggers
+        (assoc-delete-all project-root ide-common-debug-debuggers #'string=))
+  (ide-common-debug-save-debugger))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -187,13 +135,13 @@ return nil instead."
 
 (defun ide-common-debug-select-debugger (executable &optional project-root)
   "Select a debugger for EXECUTABLE in PROJECT-ROOT."
-  (ide-common-debug-load-cache)
+  (ide-common-debug-load-all)
   (if (null ide-common-debug-adapters)
       (error "No debuggers available")
     (let* ((root (or project-root
                      (ide-common-get-current-context-project-root)))
            (executable (ide-common-relative-path-if-descendant executable root))
-           (last (ide-common-debug-get-last-debugger root executable))
+           (last (ide-common-debug-get-debugger root executable))
            (names (mapcar #'car ide-common-debug-adapters))
            ;; Annotation function
            (annot-fn (lambda (cand)
@@ -205,26 +153,8 @@ return nil instead."
                       (format "Select debugger for %s: " executable)
                       names nil t nil nil last)))
         ;; store selection as last used debugger
-        (ide-common-debug-set-last-debugger root executable choice)
+        (ide-common-debug-set-debugger root executable choice)
         choice))))
-
-(defun ide-common-debug-select-executable (&optional project-root)
-  "Prompt the user to select a file to debug, starting from PROJECT-ROOT.
-Caches the selection as the last debugged executable for this project."
-  (ide-common-debug-load-cache)
-  (let* ((root (or project-root
-                     (ide-common-get-current-context-project-root)))
-         (default-file (ide-common-debug-get-last-executable root))
-         (prompt (if default-file
-                     (format "Select executable (default %s): " default-file)
-                   "Select executable: "))
-         (file (expand-file-name (read-file-name prompt root nil t nil) root))
-         (relative-file (when file
-                          (ide-common-relative-path-if-descendant file root))))
-    ;; Cache the last selected executable
-    (when relative-file
-      (ide-common-debug-set-last-executable root relative-file))
-    relative-file))
 
 (defun ide-common-debug-run-debugger (&optional prefix project-root)
   "Run debugger in PROJECT-ROOT.
@@ -235,41 +165,38 @@ Otherwise reuse last configuration."
   (let* ((root (or project-root
                   (ide-common-get-current-context-project-root)))
          (executable (or (and prefix
-                              (ide-common-debug-select-executable root))
-                         (ide-common-debug-get-last-executable root)
-                         (ide-common-debug-select-executable root)))
+                              (ide-common-launch-select-executable root))
+                         (ide-common-launch-get-current root)
+                         (ide-common-launch-select-executable root)))
          ;; if executable is relative, append to root
          ;; if executable is absolute, use as is
          (program (f-join root executable))
          (debugger (or (and prefix
-                            (ide-common-debug-select-debugger executable root))
-                       (ide-common-debug-get-last-debugger root executable)
-                       (ide-common-debug-select-debugger executable root)))
-         (type (ide-common-debug-get-last-type root executable))
-         (binary (ide-common-debug-get-last-binary root executable))
-         (command (concat binary " " executable))
+                            (ide-common-debug-select-debugger program root))
+                       (ide-common-debug-get-debugger root program)
+                       (ide-common-debug-select-debugger program root)))
+         (type (ide-common-debug-get-type root program))
+         (binary (ide-common-debug-get-binary root program))
+         (command (concat binary " " program))
          (request "launch")
          (cwd root)
-         (env (progn
-                (when prefix (ide-common-env-select-and-edit root))
-                (ide-common-env-get-profile
-                 root
-                 (ide-common-env-get-last-profile root))))
+         (env (ide-common-env-get-profile
+               root
+               (ide-common-env-get-current-profile root)))
          (args (progn
-                 (when prefix (ide-common-args-select-and-edit command root))
+                 (when prefix (ide-common-args-select-and-edit program root))
                  (ide-common-args-get-profile
                   root
-                  command
-                  (ide-common-args-get-last-profile root command)))))
-    (dap-debug
-     (list :type type
+                  program
+                  (ide-common-args-get-current-profile root program))))
+         (template (list :type type
            :request request
            :name command
            :program program
            :args args
            :cwd cwd
-           :environment env
-           :stopOnEntry t))))
+           :environment env)))
+    (dap-debug template)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -369,7 +296,7 @@ If SESSION is nil, use the current session."
 ;;;; bootstrap
 
 ;; load persistent cache
-(ide-common-debug-load-cache)
+(ide-common-debug-load-all)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

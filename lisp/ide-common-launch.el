@@ -58,9 +58,10 @@ Alist of (PROJECT . EXECUTABLE) pairs.
 
 (defun ide-common-launch-set-current (project-root executable)
   "Set last used EXECUTABLE for PROJECT-ROOT."
-  (setf (alist-get project-root ide-common-launch-current nil nil #'string=)
-        executable)
-  (ide-common-launch-save-current))
+  (let ((executable (ide-common-relative-path-if-descendant executable project-root)))
+    (setf (alist-get project-root ide-common-launch-current nil nil #'string=)
+          executable)
+    (ide-common-launch-save-current)))
 
 (defun ide-common-launch-unset-current (project-root)
   "Remove cached executable for PROJECT-ROOT."

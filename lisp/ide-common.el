@@ -315,12 +315,12 @@ If PATH is a directory, return PATH."
 
 If CANDIDATE is a descendant of ANCESTOR, return CANDIDATE's path relative
 to ANCESTOR.
-Otherwise, return absolute path to CANDIDATE."
-  (let* ((candidate (f-canonical candidate))
+Otherwise, return CANDIDATE unchanged."
+  (let* ((canonical-candidate (f-canonical candidate))
          (ancestor (f-canonical ancestor))
-         (is-descendant (f-descendant-of? candidate ancestor)))
+         (is-descendant (f-descendant-of? canonical-candidate ancestor)))
     (if is-descendant
-        (f-relative candidate ancestor)
+        (f-relative canonical-candidate ancestor)
       candidate)))
 
 (defun ide-common-locate-dominating-directory (file &optional path)

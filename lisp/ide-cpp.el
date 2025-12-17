@@ -540,9 +540,10 @@ Alist of (PROJECT . BUILDTREE) pairs.
 
 (defun ide-cpp-buildtree-set-cache (project-root build-dir)
   "Set last used BUILD-DIR for PROJECT-ROOT."
-  (setf (alist-get project-root ide-cpp-buildtree-current nil nil #'string=)
-        build-dir)
-  (ide-cpp-buildtree-save-cache))
+  (let ((build-dir (ide-common-relative-path-if-descendant build-dir project-root)))
+    (setf (alist-get project-root ide-cpp-buildtree-current nil nil #'string=)
+          build-dir)
+    (ide-cpp-buildtree-save-cache)))
 
 (defun ide-cpp-buildtree-unset-cache (project-root)
   "Remove cached build tree for PROJECT-ROOT."
