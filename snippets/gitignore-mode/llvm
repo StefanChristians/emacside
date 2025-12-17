@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: LLVM
+# key: llvm
+# --
+
+### LLVM ###
+
+# clangd
+.cache/
+
+# code coverage
+*.profraw
