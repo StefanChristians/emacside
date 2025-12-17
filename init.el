@@ -850,7 +850,10 @@
   (add-hook 'context-menu-functions #'treemacs-rightclick-menu)
 
   ;; start with treemacs window visible
-  (treemacs))
+  (treemacs)
+  :bind
+  (:map treemacs-mode-map
+        ("H" . treemacs-advanced-helpful-hydra)))
 
 ;; treemacs-icons-dired
 ;; Treemacs icons for dired
