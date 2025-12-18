@@ -1691,7 +1691,7 @@ PACK-DIR directory for binary distribution packages"
       (insert "\n")
       (yas-expand-snippet (yas-lookup-snippet "VisualStudioCodeAll" 'gitignore-mode))
       (yas-exit-all-snippets)
-      (save-buffer)
+      (insert "\n")
       (yas-expand-snippet (yas-lookup-snippet "LLVM" 'gitignore-mode))
       (yas-exit-all-snippets)
       (save-buffer)
