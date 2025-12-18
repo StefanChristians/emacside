@@ -2439,7 +2439,7 @@ If called with PREFIX (usually `C-u`), prompt for extra arguments."
     ;; phase 1: clear existing build trees
     (cl-labels
         ((cleanup-pass (project-root default)
-           (let ((tree (ide-cpp-get-build-tree project-root default)))
+           (let ((tree (f-join project-root (ide-cpp-get-build-tree project-root default))))
              (when (and tree (f-exists? tree))
                (message "Deleting existing build tree: %s" tree)
                (f-delete tree t)))
