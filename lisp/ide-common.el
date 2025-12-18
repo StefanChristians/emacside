@@ -315,10 +315,11 @@ If PATH is a directory, return PATH."
 
 If CANDIDATE is a descendant of ANCESTOR, return CANDIDATE's path relative
 to ANCESTOR.  Otherwise, return CANDIDATE unchanged."
-  (if (or (null candidate)
-          (null ancestor))
+  (if (or (null candidate) (null ancestor))
       candidate
-    (let* ((canonical-candidate (f-canonical candidate))
+    (let* (;; relative paths assumed relative to project-root
+           (default-directory (ide-common-get-project-root))
+           (canonical-candidate (f-canonical candidate))
            (canonical-ancestor  (f-canonical ancestor)))
       (if (f-descendant-of? canonical-candidate canonical-ancestor)
           (f-relative canonical-candidate canonical-ancestor)

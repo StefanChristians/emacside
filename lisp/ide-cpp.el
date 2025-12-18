@@ -2422,11 +2422,14 @@ If called interactively, prompt for BUILD-DIR override.
 If called with PREFIX (usually `C-u`), prompt for extra arguments."
   (let* ((project-root (or path (ide-common-get-current-context-project-root)))
          (final-build-tree
-          (let* ((default (ide-cpp-get-build-tree project-root))
+          (let* ((default (f-join project-root
+                                  (ide-cpp-get-build-tree project-root)))
                  (input (or build-dir
                             (read-directory-name
                              "Build directory: "
-                             (f-parent default) default nil
+                             (f-slash (f-parent default))
+                             default
+                             nil
                              (f-filename default))))
                  (candidate (f-canonical input)))
             (if (f-descendant-of? candidate project-root)
