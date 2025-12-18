@@ -560,19 +560,32 @@
   (setq lsp-keymap-prefix "C-c l")
   (setq lsp-restart 'ignore)
   :hook ((c-mode-common . lsp)
-         (shell-mode . lsp)
          (python-mode . lsp)
+         (shell-mode . lsp)
          (lsp-mode . lsp-enable-which-key-integration))
   :config
-  ;; suppress semgrep/rulesRefreshed warning popup
-  ;; solution by Arun Kumar Khattri
+  ;; ----------------------------------------------------------------------
+  ;; Suppress semgrep/rulesRefreshed warning popup
+  ;; Solution by Arun Kumar Khattri
   ;; https://emacs.stackexchange.com/questions/81247/with-lsp-mode-why-do-i-get-an-unknown-notification-about-refreshed-rules-from-s
   (defun ak-lsp-ignore-semgrep-rulesRefreshed (workspace notification)
     "Ignore semgrep/rulesRefreshed notification."
     (when (equal (gethash "method" notification) "semgrep/rulesRefreshed")
       (lsp--info "Ignored semgrep/rulesRefreshed notification")
-      t)) ;; Return t to indicate the notification is handled
-  (advice-add 'lsp--on-notification :before-until #'ak-lsp-ignore-semgrep-rulesRefreshed))
+      t))
+  (advice-add 'lsp--on-notification :before-until
+              #'ak-lsp-ignore-semgrep-rulesRefreshed)
+
+  ;; ----------------------------------------------------------------------
+  ;; Automatically register project root before starting LSP
+  (defun ide-lsp-pre-register-root (&rest _args)
+    "Ensure the project root is registered in LSP before starting."
+    (when-let ((root (ide-common-get-project-root)))
+      (setq root (f-canonical root))
+      (unless (member root (lsp-session-folders (lsp-session)))
+        (lsp-workspace-folders-add root))))
+  ;; Advice lsp to run this function before initialization
+  (advice-add 'lsp :before #'ide-lsp-pre-register-root))
 
 ;; lsp-treemacs
 ;; lsp-mode loves treemacs
