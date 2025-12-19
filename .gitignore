@@ -96,3 +96,5 @@ $RECYCLE.BIN/
 *.swo
 *.swn
 
+### DAP ###
+dap-ui-*-history

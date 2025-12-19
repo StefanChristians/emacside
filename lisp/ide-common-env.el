@@ -159,6 +159,18 @@ VARS is an alist of (NAME . VALUE) pairs."
               (format "%s=%s" (car pair) (cdr pair)))
             (ide-common-env-get-profile project-root profile))))
 
+(defun ide-common-env-load-as-dap-json (project-root &optional profile)
+  "Convert alist in PROFILE under PROJECT-ROOT to json sequence usable by DAP.
+
+The sequence format is [{name: NAME, value: VALUE }, ...]"
+  (let ((profile (or profile (ide-common-env-get-current-profile project-root)))
+        (env (ide-common-env-get-profile project-root profile)))
+    (vconcat
+     (mapcar (lambda (e)
+               (list :name (car e)
+                     :value (cdr e)))
+             env))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; annotations for completion

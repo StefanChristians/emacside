@@ -177,18 +177,30 @@ Otherwise reuse last configuration."
                        (ide-common-debug-select-debugger program root)))
          (type (ide-common-debug-get-type root program))
          (binary (ide-common-debug-get-binary root program))
-         (command (concat binary " " program))
+         (command (concat binary " " (f-filename program)))
          (request "launch")
          (cwd root)
-         (env (ide-common-env-get-profile
+         ;; environment passed to target
+         (env (ide-common-env-load-as-dap-json
                root
                (ide-common-env-get-current-profile root)))
-         (args (progn
+         ;; environment in which debugger is run
+         (process-environment (append
+                               (ide-common-env-load-as-list
+                                root
+                                (ide-common-env-get-current-profile root))
+                               (copy-sequence process-environment)))
+         (raw-args (progn
                  (when prefix (ide-common-args-select-and-edit program root))
                  (ide-common-args-get-profile
                   root
                   program
                   (ide-common-args-get-current-profile root program))))
+         (args (cond
+                ((null raw-args) [])
+                ((vectorp raw-args) raw-args)
+                ((listp raw-args) (vconcat raw-args))
+                (t [])))
          (template (list :type type
            :request request
            :name command
