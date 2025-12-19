@@ -2539,7 +2539,7 @@ With PREFIX, prompt for extra args"
 (defun ide-cpp-install-release (&optional prefix)
   "Install Release configuration.  With PREFIX, prompt for extra args."
   (interactive "P")
-  (ide-cpp-install "Debug" prefix))
+  (ide-cpp-install "Release" prefix))
 
 (defun ide-cpp-pack (build-type &optional prefix)
   "Package project with cpack.
