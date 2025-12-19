@@ -1,6 +1,9 @@
 # -*- mode: snippet -*-
 # name: main-cpp-body
 # --
+/// Entry point
+///
+/// \returns 0 on success, error code otherwise
 int main(int argc, char *argv[]) {
   return `(ide-cpp-namespace)`::run(argc, argv);$0
 }
