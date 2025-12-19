@@ -9,4 +9,6 @@ set(GRAPHVIZ_IGNORE_TARGETS
   CLI11
   gmock
   gtest
+  "_tests$"
+  "_test_headers$"
 )
