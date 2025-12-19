@@ -1,0 +1,34 @@
+# -*- mode: snippet -*-
+# name: valgrindsupp-boost-locale
+# --
+
+########################################
+# Boost.Locale suppressions
+########################################
+
+# Demangled (Linux/macOS)
+{
+   ignore_boost_locale_demangled
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   fun:*boost::locale::*
+}
+
+# Mangled Itanium ABI (Linux/macOS)
+{
+   ignore_boost_locale_mangled
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   fun:_ZN*5boost6locale*
+}
+
+# MSVC mangled (Windows)
+{
+   ignore_boost_locale_msvc
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   fun:*@locale@boost@@*
+}
