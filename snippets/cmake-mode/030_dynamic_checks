@@ -55,6 +55,7 @@ function(dynamic_checks target)
     add_custom_target(
       "valgrind_\$\{target\}"
       COMMAND "\$\{MEMCHECK_PATH\}/memcheck_runner.sh"
+      --ignore="\$\{CMAKE_SOURCE_DIR\}/valgrind.supp"
       -o "\$\{CMAKE_BINARY_DIR\}/\$\{CMAKE_MEMCHECK_OUTPUT_DIR\}/data/\$\{target\}"
       -- \$<TARGET_FILE:\$\{target\}>
       WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"

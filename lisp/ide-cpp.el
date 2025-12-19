@@ -2163,7 +2163,7 @@ TOOLS-DIR directory for development scripts"
 
 (cl-defun ide-cpp-create-cmake-root
     (&key path descr vendor contact c-std cpp-std type &allow-other-keys)
-  "Create root CMakeLists.txt and CMakeGraphVizOptions.cmake.
+  "Create root CMakeLists.txt, CMakeGraphVizOptions.cmake, and valgrind.supp.
 
 PATH parent directory
 DESCR short project description
@@ -2173,6 +2173,12 @@ C-STD C standard
 CPP-STD C++ standard
 TYPE project type"
   (find-file (f-join path "CMakeGraphVizOptions.cmake"))
+  (save-buffer)
+  (kill-buffer)
+  (find-file (f-join path "valgrind.supp"))
+  (unless (member type '("simple" "library"))
+    (insert "\n")
+    (ide-common-insert-snippet"valgrindsupp-boost-locale" 'text-mode))
   (save-buffer)
   (kill-buffer)
   (find-file (f-join path "CMakeLists.txt"))
@@ -2373,6 +2379,15 @@ before calling `ide-common-register-auto-inserts'."
  "CMakeGraphVizOptions"
  ".cmake"
  'ide-cpp-auto-insert-cmake-graphviz-options)
+
+(defun ide-cpp-auto-insert-valgrind-supp ()
+  "Auto-insert valgrind suppressions."
+  (ide-common-insert-snippet "valgrindsupp" 'text-mode))
+
+(ide-common-register-auto-inserts
+ "valgrind"
+ ".supp"
+ 'ide-cpp-auto-insert-valgrind-supp)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
