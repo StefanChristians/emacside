@@ -2174,15 +2174,6 @@ CONTACT project vendor contact email
 C-STD C standard
 CPP-STD C++ standard
 TYPE project type"
-  (find-file (f-join path "CMakeGraphVizOptions.cmake"))
-  (save-buffer)
-  (kill-buffer)
-  (find-file (f-join path "valgrind.supp"))
-  (unless (member type '("simple" "library"))
-    (insert "\n")
-    (ide-common-insert-snippet"valgrindsupp-boost-locale" 'text-mode))
-  (save-buffer)
-  (kill-buffer)
   (find-file (f-join path "CMakeLists.txt"))
   (ide-cpp-disable-cmake-includes-for-type type)
   (goto-char (point-min))
@@ -2239,6 +2230,205 @@ TYPE project type"
              (while (re-search-forward regex nil t)
                (comment-line 1))))))
 
+(defun ide-cpp-create-application-profiles (&optional path reset)
+  "Create common profiles for building application projects.
+
+PATH project root directory
+RESET if non-nil, erase all previously existing profiles for project"
+  (interactive)
+  (let ((path (or path (ide-common-get-project-root))))
+
+    (when reset (ide-common-reset-profiles path))
+
+    (ide-common-args-store-string-as-list
+     path "build-debug" "default" "")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "coverage" "-t coverage")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "memcheck" "-t valgrind")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "docs" "-t docs")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "all" "-t all -t coverage -t valgrind -t docs")
+    (ide-common-args-set-current-profile path "build-debug" "default")
+
+    (ide-common-args-store-string-as-list
+     path "build-release" "default" "")
+    (ide-common-args-store-string-as-list
+     path "build-release" "docs" "-t userdocs -t publicapidocs")
+    (ide-common-args-store-string-as-list
+     path "build-release" "all" "-t all -t userdocs -t publicapidocs")
+    (ide-common-args-set-current-profile path "build-release" "default")
+
+    (ide-common-args-store-string-as-list
+     path "install-debug" "default" "")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "runtime" "--component=runtime")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "devel" "--component=devel")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "all" "--component=runtime --component=devel")
+    (ide-common-args-set-current-profile path "install-debug" "default")
+
+    (ide-common-args-store-string-as-list
+     path "install-release" "default" "")
+    (ide-common-args-store-string-as-list
+     path "install-release" "runtime" "--component=runtime")
+    (ide-common-args-store-string-as-list
+     path "install-release" "devel" "--component=devel")
+    (ide-common-args-store-string-as-list
+     path "install-release" "all" "--component=runtime --component=devel")
+    (ide-common-args-set-current-profile path "install-debug" "default")))
+
+(defun ide-cpp-create-modular-profiles (&optional path reset)
+  "Create common profiles for building modular projects.
+
+PATH project root directory
+RESET if non-nil, erase all previously existing profiles for project"
+  (interactive)
+  (let ((path (or path (ide-common-get-project-root))))
+
+    (when reset (ide-common-reset-profiles path))
+
+    (ide-common-args-store-string-as-list
+     path "build-debug" "default" "")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "coverage" "-t coverage")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "memcheck" "-t valgrind")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "docs" "-t docs")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "all" "-t all -t coverage -t valgrind -t docs")
+    (ide-common-args-set-current-profile path "build-debug" "default")
+
+    (ide-common-args-store-string-as-list
+     path "build-release" "default" "")
+    (ide-common-args-store-string-as-list
+     path "build-release" "docs" "-t userdocs -t publicapidocs")
+    (ide-common-args-store-string-as-list
+     path "build-release" "all" "-t all -t userdocs -t publicapidocs")
+    (ide-common-args-set-current-profile path "build-release" "default")
+
+    (ide-common-args-store-string-as-list
+     path "install-debug" "default" "")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "runtime" "--component=runtime")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "devel" "--component=devel")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "all" "--component=runtime --component=devel")
+    (ide-common-args-set-current-profile path "install-debug" "default")
+
+    (ide-common-args-store-string-as-list
+     path "install-release" "default" "")
+    (ide-common-args-store-string-as-list
+     path "install-release" "runtime" "--component=runtime")
+    (ide-common-args-store-string-as-list
+     path "install-release" "devel" "--component=devel")
+    (ide-common-args-store-string-as-list
+     path "install-release" "all" "--component=runtime --component=devel")
+    (ide-common-args-set-current-profile path "install-debug" "default")))
+
+(defun ide-cpp-create-simple-profiles (&optional path reset)
+  "Create common profiles for building simple projects.
+
+PATH project root directory
+RESET if non-nil, erase all previously existing profiles for project"
+  (interactive)
+  (let ((path (or path (ide-common-get-project-root))))
+
+    (when reset (ide-common-reset-profiles path))
+
+    (ide-common-args-store-string-as-list
+     path "build-debug" "default" "")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "coverage" "-t coverage")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "memcheck" "-t valgrind")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "docs" "-t docs")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "all" "-t all -t coverage -t valgrind -t docs")
+    (ide-common-args-set-current-profile path "build-debug" "default")
+
+    (ide-common-args-store-string-as-list
+     path "build-release" "default" "")
+    (ide-common-args-store-string-as-list
+     path "build-release" "docs" "-t publicapidocs")
+    (ide-common-args-store-string-as-list
+     path "build-release" "all" "-t all -t publicapidocs")
+    (ide-common-args-set-current-profile path "build-release" "default")
+
+    (ide-common-args-store-string-as-list
+     path "install-debug" "default" "")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "runtime" "--component=runtime")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "devel" "--component=devel")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "all" "--component=runtime --component=devel")
+    (ide-common-args-set-current-profile path "install-debug" "default")
+
+    (ide-common-args-store-string-as-list
+     path "install-release" "default" "")
+    (ide-common-args-store-string-as-list
+     path "install-release" "runtime" "--component=runtime")
+    (ide-common-args-store-string-as-list
+     path "install-release" "devel" "--component=devel")
+    (ide-common-args-store-string-as-list
+     path "install-release" "all" "--component=runtime --component=devel")
+    (ide-common-args-set-current-profile path "install-debug" "default")))
+
+(defun ide-cpp-create-library-profiles (&optional path reset)
+  "Create common profiles for building library projects.
+
+PATH project root directory
+RESET if non-nil, erase all previously existing profiles for project"
+  (interactive)
+  (let ((path (or path (ide-common-get-project-root))))
+
+    (when reset (ide-common-reset-profiles path))
+
+    (ide-common-args-store-string-as-list
+     path "build-debug" "default" "")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "coverage" "-t coverage")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "memcheck" "-t valgrind")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "docs" "-t docs")
+    (ide-common-args-store-string-as-list
+     path "build-debug" "all" "-t all -t coverage -t valgrind -t docs")
+    (ide-common-args-set-current-profile path "build-debug" "default")
+
+    (ide-common-args-store-string-as-list
+     path "build-release" "default" "")
+    (ide-common-args-store-string-as-list
+     path "build-release" "docs" "-t publicapidocs")
+    (ide-common-args-store-string-as-list
+     path "build-release" "all" "-t all -t publicapidocs")
+    (ide-common-args-set-current-profile path "build-release" "default")
+
+    (ide-common-args-store-string-as-list
+     path "install-debug" "default" "")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "runtime" "--component=runtime")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "devel" "--component=devel")
+    (ide-common-args-store-string-as-list
+     path "install-debug" "all" "--component=runtime --component=devel")
+    (ide-common-args-set-current-profile path "install-debug" "default")
+
+    (ide-common-args-store-string-as-list
+     path "install-release" "default" "")
+    (ide-common-args-store-string-as-list
+     path "install-release" "runtime" "--component=runtime")
+    (ide-common-args-store-string-as-list
+     path "install-release" "devel" "--component=devel")
+    (ide-common-args-store-string-as-list
+     path "install-release" "all" "--component=runtime --component=devel")
+    (ide-common-args-set-current-profile path "install-debug" "default")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
