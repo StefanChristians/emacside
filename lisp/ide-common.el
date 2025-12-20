@@ -570,7 +570,7 @@ ARGS optional arguments for filling yasnippet fields"
 ;;;; user interaction
 
 (defun ide-common-list-all-the-icons-material ()
-  "Display all material icons ."
+  "Display all material icons."
   (interactive)
   (require 'all-the-icons)
   (let* ((icons (symbol-value 'all-the-icons-data/material-icons-alist))
