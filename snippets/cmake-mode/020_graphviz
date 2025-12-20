@@ -10,7 +10,7 @@ include_guard(GLOBAL)
 set(CMAKE_GRAPHVIZ_OUTPUT_DIR "output/docs/graph" CACHE STRING "Output directory in build tree for generated dependency graph.")
 
 # default output type
-set(CMAKE_GRAPHVIZ_OUTPUT_TYPE "png" CACHE STRING "Output format for generated dependency graph.")
+set(CMAKE_GRAPHVIZ_OUTPUT_TYPE "svg" CACHE STRING "Output format for generated dependency graph.")
 
 find_program(GRAPHVIZ_EXECUTABLE dot)
 mark_as_advanced(GRAPHVIZ_EXECUTABLE)
