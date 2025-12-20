@@ -1540,6 +1540,8 @@ CMAKE-IN CMake dynamic configuration file extension"
       (apply #'ide-cpp-create-vc-ignore-file args)
       (apply #'ide-cpp-create-code-format-file args)
       (apply #'ide-cpp-create-readme-file args)
+      (apply #'ide-cpp-create-graphviz-options-file args)
+      (apply #'ide-cpp-create-valgrind-suppressions-file args)
       (apply #'ide-cpp-create-install-dir args)
       (apply #'ide-cpp-create-pack-dir args)
       (apply #'ide-cpp-create-cmake-dir args)
@@ -2199,6 +2201,29 @@ TYPE project type"
   (while (re-search-forward "CMAKE_CXX_STANDARD[[:space:]]*[[:digit:]]+" nil t)
     (replace-match (format "CMAKE_CXX_STANDARD %s" cpp-std)))
   (save-buffer))
+
+(cl-defun ide-cpp-create-graphviz-options-file
+    (&key path type &allow-other-keys)
+  "Create CMakeGraphVizOptions.cmake file to configure graphviz.
+
+PATH parent directory
+TYPE project type"
+  (find-file (f-join path "CMakeGraphVizOptions.cmake"))
+  (save-buffer)
+  (kill-buffer))
+
+(cl-defun ide-cpp-create-valgrind-suppressions-file
+    (&key path type &allow-other-keys)
+  "Create valgrind.supp file to suppress valgrind errors.
+
+PATH parent directory
+TYPE project type"
+  (find-file (f-join path "valgrind.supp"))
+  (unless (member type '("simple" "library"))
+    (insert "\n")
+    (ide-common-insert-snippet"valgrindsupp-boost-locale" 'text-mode))
+  (save-buffer)
+  (kill-buffer))
 
 (defun ide-cpp-disable-cmake-includes-for-type (type)
   "Exclude CMake modules which are not needed for TYPE project types."
