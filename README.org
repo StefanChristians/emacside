@@ -7,6 +7,7 @@ A ready-to-use Emacs IDE for C++ that provides:
 - Integrated CMake support and build system
 - Unit test integration
 - Version control and Git support
+- Debugging
 
 [[screenshots/treemacs.png]][Screenshot of project tree]
 
@@ -48,6 +49,9 @@ Some highlighted user-facing functionality:
 - *Project management*: Tree view of files, quick open, workspace handling ([[https://github.com/Alexander-Miller/treemacs][treemacs]])
 - *Version control*: Git integration ([[https://github.com/magit/magit][magit]]), view changes inline ([[https://github.com/dgutov/diff-hl][diff-hl]])
 - *Convenience*: Auto-insert boilerplate code, snippet templates ([[https://github.com/joaotavora/yasnippet][yasnippet]]), cursor beacon, code folding, code completion
+- *Debugging*: Debugging with GDB or LLDB
+
+[[screenshots/debug.png][Debugging UI]][Debugging]
 
 ** Configuration (Advanced)
 
