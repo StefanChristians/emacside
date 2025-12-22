@@ -536,19 +536,19 @@ Alist of (PROJECT . BUILDTREE) pairs.
 
 (defun ide-cpp-buildtree-get-cache (project-root)
   "Return last build tree for PROJECT-ROOT."
-  (alist-get project-root ide-cpp-buildtree-current nil nil #'string=))
+  (alist-get (f-slash project-root) ide-cpp-buildtree-current nil nil #'string=))
 
 (defun ide-cpp-buildtree-set-cache (project-root build-dir)
   "Set last used BUILD-DIR for PROJECT-ROOT."
   (let ((build-dir (ide-common-relative-path-if-descendant build-dir project-root)))
-    (setf (alist-get project-root ide-cpp-buildtree-current nil nil #'string=)
+    (setf (alist-get (f-slash project-root) ide-cpp-buildtree-current nil nil #'string=)
           build-dir)
     (ide-cpp-buildtree-save-cache)))
 
 (defun ide-cpp-buildtree-unset-cache (project-root)
   "Remove cached build tree for PROJECT-ROOT."
   (setq ide-cpp-buildtree-current
-        (assq-delete-all project-root ide-cpp-buildtree-current))
+        (assoc-delete-all (f-slash project-root) ide-cpp-buildtree-current #'string=))
   (ide-cpp-buildtree-save-cache))
 
 
@@ -1566,7 +1566,8 @@ CMAKE-IN CMake dynamic configuration file extension"
 
 ARGS project creation parameters"
   (apply #'ide-cpp-create-app-source-dir args)
-  (apply #'ide-cpp-create-app-test-dir args))
+  (apply #'ide-cpp-create-app-test-dir args)
+  (ide-cpp-create-simple-profiles (cl-getf args :path) t))
 
 (cl-defun ide-cpp-create-application-project (&rest args)
   "Create a standard C++ application project.
@@ -1577,7 +1578,8 @@ ARGS project creation parameters"
   (apply #'ide-cpp-create-test-core-and-app-dirs args)
   (apply #'ide-cpp-create-userdoc-dir args)
   (apply #'ide-cpp-create-localize-dir args)
-  (apply #'ide-cpp-create-cmake-export-config-template-file args))
+  (apply #'ide-cpp-create-cmake-export-config-template-file args)
+  (ide-cpp-create-application-profiles (cl-getf args :path) t))
 
 (cl-defun ide-cpp-create-library-project (&rest args)
   "Create a C++ library project.
@@ -1586,7 +1588,8 @@ ARGS project creation parameters"
   (apply #'ide-cpp-create-include-dir args)
   (apply #'ide-cpp-create-lib-source-dir args)
   (apply #'ide-cpp-create-lib-test-dir args)
-  (apply #'ide-cpp-create-cmake-export-config-template-file args))
+  (apply #'ide-cpp-create-cmake-export-config-template-file args)
+  (ide-cpp-create-library-profiles (cl-getf args :path) t))
 
 (cl-defun ide-cpp-create-modular-project (&rest args)
   "Create a C++ submodules project.
@@ -1595,6 +1598,9 @@ ARGS project creation parameters"
 
   ;; add export configuration template to cmake modules directory
   (apply #'ide-cpp-create-cmake-export-config-template-file args)
+
+  ;; create common profiles
+  (ide-cpp-create-moudlar-profiles (cl-getf args :path) t)
 
   ;; first create application submodule
   ;; args contains path to project root
@@ -2278,7 +2284,7 @@ RESET if non-nil, erase all previously existing profiles for project"
      path "install-release" "devel" "--component=devel")
     (ide-common-args-store-string-as-list
      path "install-release" "all" "--component=runtime --component=devel")
-    (ide-common-args-set-current-profile path "install-debug" "default")))
+    (ide-common-args-set-current-profile path "install-release" "default")))
 
 (defun ide-cpp-create-modular-profiles (&optional path reset)
   "Create common profiles for building modular projects.
@@ -2328,7 +2334,7 @@ RESET if non-nil, erase all previously existing profiles for project"
      path "install-release" "devel" "--component=devel")
     (ide-common-args-store-string-as-list
      path "install-release" "all" "--component=runtime --component=devel")
-    (ide-common-args-set-current-profile path "install-debug" "default")))
+    (ide-common-args-set-current-profile path "install-release" "default")))
 
 (defun ide-cpp-create-simple-profiles (&optional path reset)
   "Create common profiles for building simple projects.
@@ -2378,7 +2384,7 @@ RESET if non-nil, erase all previously existing profiles for project"
      path "install-release" "devel" "--component=devel")
     (ide-common-args-store-string-as-list
      path "install-release" "all" "--component=runtime --component=devel")
-    (ide-common-args-set-current-profile path "install-debug" "default")))
+    (ide-common-args-set-current-profile path "install-release" "default")))
 
 (defun ide-cpp-create-library-profiles (&optional path reset)
   "Create common profiles for building library projects.
@@ -2428,7 +2434,7 @@ RESET if non-nil, erase all previously existing profiles for project"
      path "install-release" "devel" "--component=devel")
     (ide-common-args-store-string-as-list
      path "install-release" "all" "--component=runtime --component=devel")
-    (ide-common-args-set-current-profile path "install-debug" "default")))
+    (ide-common-args-set-current-profile path "install-release" "default")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

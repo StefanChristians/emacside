@@ -87,7 +87,7 @@ COMMANDS is an alist of (COMMAND . PROFILE) pairs.
 COMMANDS is an alist of (COMMAND . (PROFILES)) pairs.
 PROFILES is an alist of (PROFILE . (ARGS)) pairs.
 ARGS is a list of strings."
-  (alist-get project-root ide-common-args-profiles nil nil #'string=))
+  (alist-get (f-slash project-root) ide-common-args-profiles nil nil #'string=))
 
 (defun ide-common-args-get-profiles (project-root command)
   "Return PROFILES for COMMAND in PROJECT-ROOT.
@@ -111,29 +111,29 @@ ARGS is a list of strings."
 
 ARGS is a list of strings."
   (let ((command (ide-common-relative-path-if-descendant command project-root)))
-    (setf (alist-get profile (alist-get command (alist-get project-root ide-common-args-profiles nil nil #'string=) nil nil #'string=) nil nil #'string=) args)
+    (setf (alist-get profile (alist-get command (alist-get (f-slash project-root) ide-common-args-profiles nil nil #'string=) nil nil #'string=) nil nil #'string=) args)
     (ide-common-args-save-profiles)))
 
 (defun ide-common-args-unset-profile (project-root command profile)
   "Remove PROFILE from COMMAND in PROJECT-ROOT."
   (let* ((command (ide-common-relative-path-if-descendant command project-root))
          (profiles (ide-common-args-get-profiles project-root command))
-         (updated (assoc-delete-all profile profiles)))
-    (setf (alist-get command (alist-get project-root ide-common-args-profiles nil nil #'string=) nil nil #'string=) updated)
+         (updated (assoc-delete-all profile profiles #'string=)))
+    (setf (alist-get command (alist-get (f-slash project-root) ide-common-args-profiles nil nil #'string=) nil nil #'string=) updated)
     (ide-common-args-save-profiles)))
 
 (defun ide-common-args-unset-command (project-root command)
   "Remove all profiles from COMMAND in PROJECT-ROOT."
   (let* ((command (ide-common-relative-path-if-descendant command project-root))
          (commands (ide-common-args-get-commands project-root))
-         (updated (assoc-delete-all command commands)))
-    (setf (alist-get project-root ide-common-args-profiles nil nil #'string=) updated)
+         (updated (assoc-delete-all command commands #'string=)))
+    (setf (alist-get (f-slash project-root) ide-common-args-profiles nil nil #'string=) updated)
     (ide-common-args-save-profiles)))
 
 (defun ide-common-args-unset-all (project-root)
   "Delete all profiles for PROJECT-ROOT."
   (setq ide-common-args-profiles
-        (assoc-delete-all project-root ide-common-args-profiles #'string=))
+        (assoc-delete-all (f-slash project-root) ide-common-args-profiles #'string=))
   (ide-common-args-save-profiles))
 
 (defun ide-common-args-list-profile-names (project-root command)
@@ -149,23 +149,29 @@ ARGS is a list of strings."
 (defun ide-common-args-get-current-profile (project-root command)
   "Return last used profile name for COMMAND in PROJECT-ROOT."
   (let ((command (ide-common-relative-path-if-descendant command project-root)))
-    (or (alist-get command (alist-get project-root ide-common-args-current nil nil #'string=) nil nil #'string=)
+    (or (alist-get command (alist-get (f-slash project-root) ide-common-args-current nil nil #'string=) nil nil #'string=)
         "default")))
 
 (defun ide-common-args-set-current-profile (project-root command profile)
   "Set last used PROFILE name for COMMAND in PROJECT-ROOT."
   (let ((command (ide-common-relative-path-if-descendant command project-root)))
-    (setf (alist-get command (alist-get project-root ide-common-args-current nil nil #'string=) nil nil #'string=)
+    (setf (alist-get command (alist-get (f-slash project-root) ide-common-args-current nil nil #'string=) nil nil #'string=)
           profile)
     (ide-common-args-save-current)))
 
 (defun ide-common-args-unset-current-profile (project-root command)
   "Remove current profile from COMMAND in PROJECT-ROOT."
   (let* ((command (ide-common-relative-path-if-descendant command project-root))
-         (commands (alist-get project-root ide-common-args-current nil nil #'string=))
-         (updated (assoc-delete-all command commands)))
-    (setf (alist-get project-root ide-common-args-current nil nil #'string=) updated)
-    (ide-common-args-save-profiles)))
+         (commands (alist-get (f-slash project-root) ide-common-args-current nil nil #'string=))
+         (updated (assoc-delete-all command commands #'string=)))
+    (setf (alist-get (f-slash project-root) ide-common-args-current nil nil #'string=) updated)
+    (ide-common-args-save-current)))
+
+(defun ide-common-args-unset-all-current-profiles (project-root)
+  "Remove all COMMANDS in PROJECT-ROOT."
+  (setq ide-common-args-current
+        (assoc-delete-all (f-slash project-root) ide-common-args-current #'string=))
+    (ide-common-args-save-current))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

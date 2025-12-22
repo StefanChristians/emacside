@@ -565,6 +565,17 @@ ARGS optional arguments for filling yasnippet fields"
   (with-temp-file file
     (prin1 data (current-buffer))))
 
+(defun ide-common-reset-profiles (&optional project-root)
+  "Delete all profiles cached for PROJECT-ROOT."
+  (interactive)
+  (let ((project-root (or project-root (ide-common-get-project-root))))
+    (ide-common-env-unset-all project-root)
+    (ide-common-env-unset-current-profile project-root)
+    (ide-common-args-unset-all project-root)
+    (ide-common-args-unset-all-current-profiles project-root)
+    (ide-common-debug-unset-all project-root)
+    (ide-common-launch-unset-current project-root)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; user interaction

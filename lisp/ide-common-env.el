@@ -88,7 +88,7 @@ Alist of (PROJECT . PROFILE) pairs.
 
 PROFILES is an alist of (PROFILE . (VARS)) pairs.
 VARS is an alist of (NAME . VALUE) pairs."
-  (alist-get project-root ide-common-env-profiles nil nil #'string=))
+  (alist-get (f-slash project-root) ide-common-env-profiles nil nil #'string=))
 
 (defun ide-common-env-get-profile (project-root profile)
   "Return VARS for PROFILE under PROJECT-ROOT.
@@ -103,7 +103,7 @@ VARS is an alist of (NAME . VALUE) pairs."
 VARS is an alist of (NAME . VALUE) pairs."
   (setf (alist-get
          profile
-         (alist-get project-root ide-common-env-profiles nil nil #'string=)
+         (alist-get (f-slash project-root) ide-common-env-profiles nil nil #'string=)
          nil nil #'string=)
         vars)
   (ide-common-env-save-profiles))
@@ -112,14 +112,14 @@ VARS is an alist of (NAME . VALUE) pairs."
   "Remove PROFILE from PROJECT-ROOT."
   (let* ((profiles (ide-common-env-get-profiles project-root))
          (updated (assoc-delete-all profile profiles)))
-    (setf (alist-get project-root ide-common-env-profiles nil nil #'string=)
+    (setf (alist-get (f-slash project-root) ide-common-env-profiles nil nil #'string=)
           updated)
     (ide-common-env-save-profiles)))
 
 (defun ide-common-env-unset-all (project-root)
   "Delete all profiles for PROJECT-ROOT."
   (setq ide-common-env-profiles
-        (assoc-delete-all project-root ide-common-env-profiles #'string=))
+        (assoc-delete-all (f-slash project-root) ide-common-env-profiles #'string=))
   (ide-common-env-save-profiles))
 
 (defun ide-common-env-list-profile-names (project-root)
@@ -133,19 +133,19 @@ VARS is an alist of (NAME . VALUE) pairs."
 
 (defun ide-common-env-get-current-profile (project-root)
   "Return last used profile name for PROJECT-ROOT."
-  (or (alist-get project-root ide-common-env-current nil nil #'string=)
+  (or (alist-get (f-slash project-root) ide-common-env-current nil nil #'string=)
       "default"))
 
 (defun ide-common-env-set-current-profile (project-root profile)
   "Set last used PROFILE name for PROJECT-ROOT."
-  (setf (alist-get project-root ide-common-env-current nil nil #'string=)
+  (setf (alist-get (f-slash project-root) ide-common-env-current nil nil #'string=)
         profile)
   (ide-common-env-save-current))
 
 (defun ide-common-env-unset-current-profile (project-root)
   "Remove cached PROFILE for PROJECT-ROOT."
   (setq ide-common-env-current
-        (assq-delete-all project-root ide-common-env-current))
+        (assoc-delete-all (f-slash project-root) ide-common-env-current #'string=))
   (ide-common-env-save-current))
 
 

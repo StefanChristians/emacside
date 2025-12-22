@@ -88,7 +88,7 @@ EXECUTABLES is an alist of (EXECUTABLE . DEBUGGER) pairs.
   "Return EXECUTABLES in PROJECT-ROOT.
 
 EXECUTABLES is an alist of (EXECUTABLE . DEBUGGER) pairs."
-  (alist-get project-root ide-common-debug-debuggers nil nil #'string=))
+  (alist-get (f-slash project-root) ide-common-debug-debuggers nil nil #'string=))
 
 (defun ide-common-debug-get-debugger (project-root executable)
   "Return debugger for EXECUTABLE in PROJECT-ROOT."
@@ -112,7 +112,7 @@ EXECUTABLES is an alist of (EXECUTABLE . DEBUGGER) pairs."
 (defun ide-common-debug-set-debugger (project-root executable debugger-name)
   "Set DEBUGGER-NAME for EXECUTABLE in PROJECT-ROOT."
   (let ((executable (ide-common-relative-path-if-descendant executable project-root)))
-    (setf (alist-get executable (alist-get project-root ide-common-debug-debuggers nil nil #'string=) nil nil #'string=) debugger-name)
+    (setf (alist-get executable (alist-get (f-slash project-root) ide-common-debug-debuggers nil nil #'string=) nil nil #'string=) debugger-name)
     (ide-common-debug-save-debugger)))
 
 (defun ide-common-debug-unset-executable (project-root executable)
@@ -120,13 +120,13 @@ EXECUTABLES is an alist of (EXECUTABLE . DEBUGGER) pairs."
   (let* ((executable (ide-common-relative-path-if-descendant executable project-root))
          (executables (ide-common-debug-get-executables project-root))
          (updated (assoc-delete-all executable executables)))
-    (setf (alist-get project-root ide-common-debug-debuggers nil nil #'string=) updated)
+    (setf (alist-get (f-slash project-root) ide-common-debug-debuggers nil nil #'string=) updated)
     (ide-common-debug-save-debugger)))
 
 (defun ide-common-debug-unset-all (project-root)
   "Delete all debuggers for PROJECT-ROOT."
   (setq ide-common-debug-debuggers
-        (assoc-delete-all project-root ide-common-debug-debuggers #'string=))
+        (assoc-delete-all (f-slash project-root) ide-common-debug-debuggers #'string=))
   (ide-common-debug-save-debugger))
 
 
