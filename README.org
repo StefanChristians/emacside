@@ -51,7 +51,7 @@ Some highlighted user-facing functionality:
 - *Convenience*: Auto-insert boilerplate code, snippet templates ([[https://github.com/joaotavora/yasnippet][yasnippet]]), cursor beacon, code folding, code completion
 - *Debugging*: Debugging with GDB or LLDB
 
-[[screenshots/debug.png][Debugging UI]][Debugging]
+[[screenshots/debug.png]][Debugging]
 
 ** Configuration (Advanced)
 
