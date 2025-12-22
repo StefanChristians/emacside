@@ -22,6 +22,7 @@
 /.extension/
 /.git.private/
 /auto-save-list/
+/url/
 
 ### Emacs: Files ###
 newsrc
@@ -38,6 +39,7 @@ newsrc.eld
 .last-package-update*
 projectile-bookmarks.eld
 company-statistics-cache.el
+ede-projects.el
 
 ### Emacs: Elisp ###
 # Compiled
