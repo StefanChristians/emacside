@@ -2875,7 +2875,6 @@ With PREFIX, prompt for extra args"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; menu
 
-
 (defvar ide-cpp-build-menu-map (make-sparse-keymap)
   "Keymap for the global Build menu minor mode.")
 
