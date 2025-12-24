@@ -538,7 +538,7 @@ The sequence format is [{name: NAME, value: VALUE }, ...]"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; menu
 
-(easy-menu-define ide-cpp-menu-build ide-common-env-mode-map
+(easy-menu-define ide-common-menu-environment ide-common-env-mode-map
   "Common environment editing menu."
   '("Environment"
     ["Add Variable" ide-common-env-add t]
