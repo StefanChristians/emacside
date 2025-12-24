@@ -548,7 +548,7 @@ and project, with syntax-aware coloring."
 ;;;; menu
 
 (easy-menu-define ide-common-menu-arguments ide-common-args-mode-map
-  "Common environment editing menu."
+  "Common arguments editing menu."
   '("Arguments"
     ["Change Profile" ide-common-args-save-and-change-profile t]
     ["Rename Profile" ide-common-args-save-and-rename-profile t]
