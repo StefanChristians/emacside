@@ -533,6 +533,27 @@ The sequence format is [{name: NAME, value: VALUE }, ...]"
 
 (setq ide-common-env-mode-map (ide-common-env-setup-keymap))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; menu
+
+(easy-menu-define ide-cpp-menu-build ide-common-env-mode-map
+  "Common environment editing menu."
+  '("Environment"
+    ["Add Variable" ide-common-env-add t]
+    ["Edit Variable" ide-common-env-edit-value t]
+    ["Rename Variable" ide-common-env-edit-name t]
+    ["Delete Variable" ide-common-env-delete t]
+    "---"
+    ["Change Profile" ide-common-env-change-profile t]
+    ["Rename Profile" ide-common-env-rename-profile t]
+    ["Clone Profile" ide-common-env-clone-profile t]
+    ["Delete Profile" ide-common-env-delete-profile t]
+    ["Delete All Profiles" ide-common-env-delete-all-profiles t]
+    "---"
+    ["Close" ide-common-env-quit t]))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; bootstrap
