@@ -545,6 +545,22 @@ and project, with syntax-aware coloring."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; menu
+
+(easy-menu-define ide-common-menu-arguments ide-common-args-mode-map
+  "Common environment editing menu."
+  '("Arguments"
+    ["Change Profile" ide-common-args-save-and-change-profile t]
+    ["Rename Profile" ide-common-args-save-and-rename-profile t]
+    ["Clone Profile" ide-common-args-save-and-clone-profile t]
+    ["Delete Profile" ide-common-args-delete-profile t]
+    ["Delete All Profiles" ide-common-args-delete-all-profiles t]
+    "---"
+    ["Close" ide-common-args-save-and-close t]
+    ["Quit" ide-common-args-close t]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; bootstrap
 
 ;; load persistent cache
