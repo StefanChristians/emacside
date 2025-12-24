@@ -2873,6 +2873,72 @@ With PREFIX, prompt for extra args"
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; menu
+
+
+(defvar ide-cpp-build-menu-map (make-sparse-keymap)
+  "Keymap for the global Build menu minor mode.")
+
+(define-minor-mode ide-cpp-build-menu-mode
+  "Global minor mode to show the C++ Build menu."
+  :global t
+  :group 'ide-cpp
+  :keymap ide-cpp-build-menu-map)
+
+;; Enable it globally
+(ide-cpp-build-menu-mode 1)
+
+(easy-menu-define ide-cpp-menu-build ide-cpp-build-menu-map
+  "C++ build and run menu."
+  '("Build"
+    ["Environment" ide-common-env-select-and-edit t]
+    "---"
+    ["Initialize" ide-cpp-initialize-debug :visible (ide-cpp-is-multi-config)]
+    ["Modify and Initialize" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-initialize-debug))) :visible (ide-cpp-is-multi-config)]
+    ["Initialize Debug" ide-cpp-initialize-debug :visible (not (ide-cpp-is-multi-config))]
+    ["Modify and Initialize Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-initialize-debug))) :visible (not (ide-cpp-is-multi-config))]
+    ["Initialize Release" ide-cpp-initialize-release :visible (not (ide-cpp-is-multi-config))]
+    ["Modify and Initialize Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-initialize-release))) :visible (not (ide-cpp-is-multi-config))]
+
+    ["Configure" ide-cpp-configure-debug :visible (ide-cpp-is-multi-config)]
+    ["Modify and Configure" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-configure-debug))) :visible (ide-cpp-is-multi-config)]
+    ["Configure Debug" ide-cpp-configure-debug :visible (not (ide-cpp-is-multi-config))]
+    ["Modify and Configure Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-configure-debug))) :visible (not (ide-cpp-is-multi-config))]
+    ["Configure Release" ide-cpp-configure-release :visible (not (ide-cpp-is-multi-config))]
+    ["Modify and Configure Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-configure-release))) :visible (not (ide-cpp-is-multi-config))]
+    "---"
+    ["Build" ide-cpp-build-debug :visible (not (ide-cpp-is-multi-config))]
+    ["Modify and Build" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-build-debug))) :visible (not (ide-cpp-is-multi-config))]
+    ["Build Debug" ide-cpp-build-debug :visible (ide-cpp-is-multi-config)]
+    ["Modify and Build Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-build-debug))) :visible (ide-cpp-is-multi-config)]
+    ["Build Release" ide-cpp-build-release :visible (ide-cpp-is-multi-config)]
+    ["Modify and Build Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-build-release))) :visible (ide-cpp-is-multi-config)]
+    ["Install" ide-cpp-install-debug :visible (not (ide-cpp-is-multi-config))]
+    ["Modify and Install" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-install-debug))) :visible (not (ide-cpp-is-multi-config))]
+    ["Install Debug" ide-cpp-install-debug :visible (ide-cpp-is-multi-config)]
+    ["Modify and Install Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-install-debug))) :visible (ide-cpp-is-multi-config)]
+    ["Install Release" ide-cpp-build-release :visible (ide-cpp-is-multi-config)]
+    ["Modify and Install Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-build-release))) :visible (ide-cpp-is-multi-config)]
+    ["Pack" ide-cpp-pack-debug :visible (not (ide-cpp-is-multi-config))]
+    ["Modify and Pack" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-pack-debug))) :visible (not (ide-cpp-is-multi-config))]
+    ["Pack Debug" ide-cpp-pack-debug :visible (ide-cpp-is-multi-config)]
+    ["Modify and Pack Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-pack-debug))) :visible (ide-cpp-is-multi-config)]
+    ["Pack Release" ide-cpp-pack-release :visible (ide-cpp-is-multi-config)]
+    ["Modify and Pack Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-pack-release))) :visible (ide-cpp-is-multi-config)]
+    "---"
+    ["Debug" ide-common-debug-run-debugger t]
+    ["Modify and Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-common-debug-run-debugger))) t]
+    ["Run" ide-common-launch-execute t]
+    ["Modify and Run" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-common-launch-execute))) t]
+    "---"
+    ["Delete All Breakpoints" dap-breakpoint-delete-all t]
+    ["Toggle Breakpoint" dap-breakpoint-toggle t]
+    "---"
+    ["Terminate All Sessions" ide-common-debug-disconnect-and-delete-all-sessions t]
+    ["Disconnect All Sessions" ide-common-debug-disconnect-all-sessions t]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; bootstrap
 
 ;; register known C++ debuggers and their DAP adapters
