@@ -1,0 +1,394 @@
+#!/usr/bin/python
+
+# bump version number
+
+import os
+import re
+import sys
+import argparse
+import subprocess
+
+from pathlib import Path
+
+# defaults
+default_version_file_base = "VERSION"
+available_version_file_extensions = ("", ".txt")
+
+
+# command line arguments
+parser = argparse.ArgumentParser(
+    description=("bump version number"))
+
+info_group = parser.add_argument_group("information")
+info_group.add_argument("-i", "--info", action="store_true", help="show current and next versions and exit")
+
+bump_group = parser.add_argument_group("bump type")
+exclusive_bump_group = bump_group.add_mutually_exclusive_group()
+exclusive_bump_group.add_argument("-a", "--auto", action="store_true", help="automatically decide bump")
+exclusive_bump_group.add_argument("-m", "--major", action="store_true", help="bump major version")
+exclusive_bump_group.add_argument("-n", "--minor", action="store_true", help="bump minor version")
+exclusive_bump_group.add_argument("-p", "--patch", action="store_true", help="bump patch level")
+
+commit_group = parser.add_argument_group("commits")
+commit_group.add_argument("-P", "--push", action="store_true", help="push commits to origin")
+
+args = parser.parse_args()
+
+# working directory is project root
+project_root = Path(sys.path[0]).parent.absolute()
+os.chdir(project_root)
+
+# read fallback version
+fallback_file = ""
+fallback_branch = "none"
+fallback_version = "0.0.0"
+fallback_revision = "unknown"
+fallback_distance = 0
+fallback_dirty = False
+for ext in available_version_file_extensions:
+    check_file = "{}{}".format(default_version_file_base, ext)
+    if Path(check_file).is_file():
+        fallback_file = check_file
+        break
+if (fallback_file):
+    fallback_version = Path(fallback_file).read_text().strip()
+match = re.match(r"(\d+)\.(\d+)\.(\d+)", fallback_version)
+if not match:
+    print("can not parse fallback version: {}".format(fallback_version))
+    sys.exit(1)
+fallback_major, fallback_minor, fallback_patch = map(int, match.groups())
+
+# determine version control system
+vcs = ""
+if Path(".git").is_dir():
+    vcs = "Git"
+elif Path("CVS").is_dir():
+    vcs = "CVS"
+elif Path(".svn").is_dir():
+    vcs = "SVN"
+elif Path(".hg").is_dir():
+    vcs = "Hg"
+elif Path(".bzr").is_dir():
+    vcs = "Bzr"
+elif Path(".mtn").is_dir():
+    vcs = "Mtn"
+
+# get version from vcs
+vcs_branch = "main"
+vcs_last_tag = ""
+vcs_version = ""
+vcs_revision = "unknown"
+vcs_distance = 0
+vcs_dirty = False
+match vcs:
+    case "Git":
+        vcs_branch = subprocess.check_output(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True).strip()
+        vcs_last_tag = subprocess.check_output(
+            ["git", "describe", "--tags", "--always", "--abbrev=0"], text=True).strip()
+        vcs_version = vcs_last_tag.lstrip("v")
+        vcs_revision = subprocess.check_output(
+            ["git", "rev-parse", "--short=7", "HEAD"], text=True).strip()
+        vcs_distance = subprocess.check_output(
+            ["git", "rev-list", "--count", f"{vcs_last_tag}..HEAD"], text=True).strip()
+        vcs_dirty = int(
+            subprocess.run(["git", "diff", "--quiet", "--exit-code"]).returncode != 0 or
+            subprocess.run(["git", "diff", "--cached", "--quiet", "--exit-code"]).returncode != 0 or
+            bool(subprocess.run(
+                ["git", "ls-files", "--others", "--exclude-standard"],
+                capture_output=True, text=True
+            ).stdout.strip())
+        )
+
+    case "CVS":
+        # last tag from VERSION file only
+        tags = subprocess.check_output(
+            ["cvs", "log", "-h", fallback_file], text=True)
+        m = re.findall(r"symbolic names:\s*(.*)", tags)
+        if m:
+            vcs_last_tag = m[-1].split(":")[0].strip()
+            vcs_version = vcs_last_tag.lstrip("v")
+        vcs_revision = "r" + subprocess.check_output(
+            ["cvs", "status", "-v", fallback_file], text=True).splitlines()[1].split()[1]
+
+    case "SVN":
+
+        rel = subprocess.check_output(["svn","info","--show-item","relative-url"], text=True).strip()
+        if rel.startswith('^/trunk'):
+            vcs_branch = 'trunk'
+        elif rel.startswith('^/branches/'):
+            vcs_branch = rel.split('/',2)[2]
+        else:
+            vcs_branch = rel.strip('^/').strip('/')
+        vcs_revision = subprocess.check_output(
+            ["svn", "info", "--show-item", "revision"], text=True).strip()
+        tags = subprocess.check_output(["svn", "list", "^/tags"], text=True).split()
+        if tags:
+            vcs_last_tag = tags[-1].strip("/")
+            vcs_version = vcs_last_tag.lstrip("v")
+        vcs_dirty = bool(subprocess.run(
+            ["svn", "status"], stdout=subprocess.PIPE).stdout)
+
+    case "Hg":
+        vcs_branch = subprocess.check_output(["hg", "branch"], text=True).strip()
+        vcs_last_tag = subprocess.check_output(
+            ["hg", "log", "-r", "last(tag())", "--template", "{tags}"], text=True).strip()
+        vcs_version = vcs_last_tag.lstrip("v")
+        vcs_revision = subprocess.check_output(["hg", "id", "-i"], text=True).strip("+")
+        vcs_distance = subprocess.check_output(
+            ["hg", "id", "-n"], text=True).strip()
+        vcs_dirty = bool(subprocess.run(
+            ["hg", "status"], stdout=subprocess.PIPE).stdout)
+
+    case "Bzr":
+        vcs_branch = subprocess.check_output(["bzr", "nick"], text=True).strip()
+        tags = subprocess.check_output(["bzr", "tags"], text=True).splitlines()
+        if tags:
+            vcs_last_tag = tags[-1].split()[0]
+            vcs_version = vcs_last_tag.lstrip("v")
+        vcs_revision = subprocess.check_output(["bzr", "revno"], text=True).strip()
+        vcs_dirty = bool(subprocess.run(
+            ["bzr", "status"], stdout=subprocess.PIPE).stdout)
+
+    case "Mtn":
+        tags = subprocess.check_output(["mtn", "list", "tags"], text=True).splitlines()
+        if tags:
+            vcs_last_tag = tags[-1].split()[0]
+            vcs_version = vcs_last_tag.lstrip("v")
+        vcs_revision = subprocess.check_output(
+            ["mtn", "automate", "heads"], text=True).splitlines()[0][:7]
+        vcs_dirty = bool(subprocess.run(
+            ["mtn", "status"], stdout=subprocess.PIPE).stdout)
+
+match = re.match(r"(\d+)\.(\d+)\.(\d+)", vcs_version)
+if match:
+    vcs_major, vcs_minor, vcs_patch = map(int, match.groups())
+else:
+    print("can not parse vcs version: {}, using fallback".format(vcs_version))
+    vcs = nil
+
+# calculate next version
+if vcs:
+    major = vcs_major
+    minor = vcs_minor
+    patch = vcs_patch
+else:
+    major = fallback_major
+    minor = fallback_minor
+    patch = fallback_patch
+
+bump_type = ""
+bump_trigger = ""
+if args.major:
+    bump_type = "major"
+    bump_trigger = bump_type
+elif args.minor:
+    bump_type = "minor"
+    bump_trigger = bump_type
+elif args.patch:
+    bump_type = "patch"
+    bump_trigger = bump_type
+elif args.auto or args.info:
+    bump_trigger = "auto"
+    commits = []
+    match vcs:
+        case "Git":
+            commits = subprocess.check_output(
+                ["git", "log", f"{vcs_last_tag}..HEAD", "--pretty=%s"],
+                text=True).splitlines()
+
+        case "CVS":
+            # Using rlog with -rTAG: gets all commits since the given tag
+            commits = subprocess.check_output(
+                ["cvs", "rlog", f"-r{vcs_last_tag}:"],
+                text=True).splitlines()
+
+        case "SVN":
+            # Get log entries since last tag URL
+            # assuming tags are under ^/tags/<tagname> and trunk under ^/trunk
+            commits = subprocess.check_output(
+                ["svn", "log", f"^/trunk@HEAD", f"^/tags/{vcs_last_tag}"],
+                text=True).splitlines()
+
+        case "Hg":
+            commits = subprocess.check_output(
+                ["hg", "log", "-r", f"tag('{vcs_last_tag}')::.",
+                 "--template", "{desc}\\n"],
+                text=True).splitlines()
+
+        case "Bzr":
+            commits = subprocess.check_output(
+                ["bzr", "log", "-r", f"tag:{vcs_last_tag}..", "--line"],
+                text=True).splitlines()
+
+        case "Mtn":
+            if vcs_last_tag:
+                # get the current workspace revision
+                current_rev = subprocess.check_output(
+                    ["mtn", "automate", "get_current_revision_id"],
+                    text=True).strip()
+                # scan commits between last tag and current revision
+                raw = subprocess.check_output(
+                    ["mtn", "log",
+                     "--from", f"t:{vcs_last_tag}",
+                     "--to", current_rev,
+                     "--no-graph", "--no-diffs", "--no-files"],
+                    text=True)
+                # extract first line of commit messages
+                for line in raw.splitlines():
+                    s = line.strip()
+                    if s.startswith("ChangeLog:") or s.startswith("Comment:"):
+                        msg = s.split(":", 1)[1].strip()
+                        commits.append(msg.splitlines()[0])
+            else:
+                # fallback: last 50 commits
+                commits = subprocess.check_output(
+                ["mtn", "log", "--last=50"],
+                text=True).splitlines()
+
+    for c in commits:
+        header = c.splitlines()[0]
+        if re.search(r'BREAKING CHANGE', c) or re.search(r'^(?:\w+)(?:\([^\)]*\))?!:', header):
+            bump_type = "major"
+            break;
+        elif re.match(r'^(feat)(\([^\)]+\))?(!)?:', header):
+            bump_type = "minor"
+        elif re.match(r'^(fix)(\([^\)]+\))?(!)?:', header) and bump_type == "":
+            bump_type = "patch"
+
+match bump_type:
+    case "major":
+        major += 1
+        minor = 0
+        patch = 0
+    case "minor":
+        minor += 1
+        patch = 0
+    case "patch":
+        patch += 1
+
+# sanity check
+bump_forbidden = []
+if vcs:
+    if vcs_branch not in ("main", "master", "trunk"):
+        bump_forbidden.append(f"not allowed in {vcs_branch} branch")
+    if vcs_dirty:
+        bump_forbidden.append("not allowed with uncommitted changes")
+
+def print_current_version():
+    """
+    output current version information
+    """
+    if (vcs):
+        print(f"version:  {vcs_major}.{vcs_minor}.{vcs_patch}+{vcs_distance}.{vcs_revision}{'.dirty' if vcs_dirty else ''} ({vcs} {vcs_branch})")
+    if (fallback_file):
+        print(f"fallback: {fallback_version} ({fallback_file})")
+    else:
+        print(f"fallback: {fallback_version} (hardcoded)")
+    print(f"next:     {major}.{minor}.{patch} ({bump_trigger})")
+    if bump_forbidden:
+        print(*bump_forbidden, sep='\n')
+
+def bump_version():
+    """
+    bump to next version, commit and optionally push
+    """
+    if bump_forbidden:
+        print("can not bump version:")
+        print(*bump_forbidden, sep=', ')
+        sys.exit(1)
+
+    if not bump_type:
+        print("nothing to do")
+        sys.exit(0)
+
+    print(f"bumping version to {major}.{minor}.{patch} ({bump_trigger})")
+
+    if fallback_file:
+        Path(fallback_file).write_text(f"{major}.{minor}.{patch}\n")
+
+    tag_name = f"v{major}.{minor}.{patch}"
+    match vcs:
+        case "Git":
+            # commit
+            if fallback_file:
+                subprocess.run(["git", "add", fallback_file], check=True)
+                subprocess.run(["git", "commit", "-m", f"chore(release): {tag_name}"], check=True)
+            # tag
+            subprocess.run(["git", "tag", "-a", tag_name, "-m", f"Release {tag_name}"], check=True)
+            # push
+            if args.push:
+                result = subprocess.run(["git", "remote"], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                if "origin" in result.stdout.split():
+                    subprocess.run(["git", "push", "origin", "main"], check=True)
+                    subprocess.run(["git", "push", "origin", tag_name], check=True)
+
+        case "CVS":
+            # commit & tag
+            if fallback_file:
+                subprocess.run(["cvs", "commit", "-m", f"chore(release): {tag_name}", fallback_file], check=True)
+                subprocess.run(["cvs", "tag", tag_name, fallback_file], check=True)
+            # no push in CVS
+
+        case "SVN":
+            url = subprocess.check_output(["svn", "info", "--show-item", "url"], text=True).strip()
+            root = subprocess.check_output(["svn", "info", "--show-item", "repos-root-url"], text=True).strip()
+            tag_url = f"{root}/tags/{tag_name}"
+            # commit
+            if fallback_file:
+                subprocess.run(["svn", "commit", "-m", f"chore(release): {tag_name}", fallback_file], check=True)
+            # tag
+            subprocess.run(["svn", "copy", url, tag_url, "-m", f"Release {tag_name}"], check=True)
+            # SVN commits directly to central repo, no push
+            if args.push:
+                subprocess.run(["svn", "update"], check=True)
+
+        case "Hg":
+            # commit
+            if fallback_file:
+                subprocess.run(["hg", "commit", "-m", f"chore(release): {tag_name}", fallback_file], check=True)
+            # tag
+            subprocess.run(["hg", "tag", tag_name, "-m", f"Release {tag_name}"], check=True)
+            # push
+            if args.push:
+                result = subprocess.run(["hg", "paths", "default"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+                if result.stdout.strip():
+                    subprocess.run(["hg", "push"], check=True)
+
+        case "Bzr":
+            # commit
+            if fallback_file:
+                subprocess.run(["bzr", "commit", "-m", f"chore(release): {tag_name}", fallback_file], check=True)
+            # tag
+            subprocess.run(["bzr", "tag", tag_name], check=True)
+            # push
+            if args.push:
+                result = subprocess.run(["bzr", "info"], stdout=subprocess.PIPE, text=True)
+                if "push branch" in result.stdout or "bound location" in result.stdout:
+                    subprocess.run(["bzr", "push"], check=True)
+
+        case "Mtn":
+            # commit
+            if fallback_file:
+                subprocess.run(["mtn", "commit", "--message", f"chore(release): {tag_name}", fallback_file], check=True)
+            # tag
+            subprocess.run(["mtn", "tag", vcs_branch, tag_name], check=True)
+            # push
+            if args.push:
+                try:
+                    subprocess.run(["mtn", "push"], check=True)
+                except FileNotFoundError:
+                    print("Monotone: no default server configured, skipping push")
+
+def main():
+
+    # show info
+    if args.info:
+        print_current_version()
+        sys.exit()
+
+    # bump version
+    bump_version()
+
+if __name__ == '__main__':
+    main()
