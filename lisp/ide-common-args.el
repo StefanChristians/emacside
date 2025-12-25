@@ -537,6 +537,11 @@ and project, with syntax-aware coloring."
   "Define keymap for `ide-common-args-mode'."
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c a") #'hydra-ide-common-args/body)
+    (define-key map (kbd "M-p") #'ide-common-args-save-and-change-profile)
+    (define-key map (kbd "M-r") #'ide-common-args-save-and-rename-profile)
+    (define-key map (kbd "M-c") #'ide-common-args-save-and-clone-profile)
+    (define-key map (kbd "M-d") #'ide-common-args-delete-profile)
+    (define-key map (kbd "M-D") #'ide-common-args-delete-all-profiles)
     (define-key map (kbd "C-c C-c") #'ide-common-args-save-and-close)
     (define-key map (kbd "C-c C-k") #'ide-common-args-close)
     map))
