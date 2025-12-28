@@ -497,6 +497,49 @@ They are handled separately."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ephemeral cache
+
+;; current generator type
+(defvar ide-cpp-multi-config-cache (make-hash-table :test #'equal)
+  "Ephemeral cache of multi-config state per project root.")
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; current generator type getters and setters
+
+(defun ide-cpp-multi-config-p ()
+  "Return non-nil if a multi-config generator is being used.
+Uses an ephemeral per-project cache."
+  (when-let ((root (ide-common-get-project-root)))
+    (or (gethash root ide-cpp-multi-config-cache)
+        (let ((value (ide-cpp-is-multi-config)))
+          (puthash root value ide-cpp-multi-config-cache)
+          value))))
+
+(defun ide-cpp-warm-project-cache ()
+  "Precompute project state for the current buffer."
+  (when (ide-cpp-is-cmake-project)
+    (ide-cpp-multi-config-p)))
+(add-hook 'find-file-hook #'ide-cpp-warm-project-cache)
+(add-hook 'after-change-major-mode-hook #'ide-cpp-warm-project-cache)
+
+(defun ide-cpp-invalidate-multi-config (&optional root)
+  "Invalidate cached multi-config state.
+If ROOT is nil, invalidate the current project."
+  (let ((root (or root (ide-common-get-project-root))))
+    (when root
+      (remhash root ide-cpp-multi-config-cache))))
+
+;; users can call this function after externally re-initializing
+;; the project with a different generator
+(defun ide-cpp-refresh-project-state ()
+  "Refresh cached project state after external reconfiguration."
+  (interactive)
+  (clrhash ide-cpp-multi-config-cache)
+  (message "IDE C++ project state refreshed"))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; persistent cache
 
 ;; current build tree cache
@@ -1322,6 +1365,32 @@ or read the CMAKE_GENERATOR environment variable."
   "Return non-nil if a multi-config generator is being used."
   (when-let ((gen (ide-cpp-cmake-get-generator)))
     (string-match-p "\\(Visual\\|Xcode\\|Multi\\|MULTI\\)" gen)))
+
+(defun ide-cpp-is-cmake-project ()
+  "Return non-nil if the current buffer belongs to a CMake project."
+  (when-let ((root (ffip-project-root)))
+    (file-exists-p
+     (expand-file-name "CMakeLists.txt" root))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; buffer project context
+
+(defvar-local ide-cpp-cmake-project-p nil
+  "Local buffer project context whether file belongs to a CMake project.")
+
+(defun ide-cpp-init-project-context ()
+  "Initialize buffer project context whether it belongs to a CMake project."
+  (when buffer-file-name
+    (setq ide-cpp-cmake-project-p (ide-cpp-is-cmake-project))))
+
+(defun ide-cpp-on-buffer-init ()
+  "Call project context initialization on buffer."
+  (ide-cpp-init-project-context)
+  (when ide-cpp-cmake-project-p
+    (ide-cpp-build-menu-mode 1)))
+(add-hook 'find-file-hook #'ide-cpp-on-buffer-init)
+(add-hook 'after-change-major-mode-hook #'ide-cpp-on-buffer-init)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2708,7 +2777,8 @@ If called with PREFIX (usually `C-u`), prompt for extra arguments."
       ("Release"
        (ide-cpp-configure-release prefix))
       (_
-       (ide-cpp-configure-debug prefix)))))
+       (ide-cpp-configure-debug prefix)))
+    (ide-cpp-invalidate-multi-config)))
 
 (defun ide-cpp-initialize-debug (&optional prefix path build-dir)
   "Initialize project for Debug build.
@@ -2737,7 +2807,7 @@ With PREFIX, prompt for extra args"
   (let* ((build-tree (ide-cpp-get-build-tree))
          (project-root (ide-common-get-current-context-project-root))
          (command (format "build-%s" (downcase build-type)))
-         (base-args (if (ide-cpp-is-multi-config)
+         (base-args (if (ide-cpp-multi-config-p)
                         (list "--build" build-tree "--config" build-type)
                       (list "--build" build-tree))))
     ;; run cmake
@@ -2761,7 +2831,7 @@ With PREFIX, prompt for extra args"
   (let* ((build-tree (ide-cpp-get-build-tree))
          (project-root (ide-common-get-current-context-project-root))
          (command (format "install-%s" (downcase build-type)))
-         (base-args (if (ide-cpp-is-multi-config)
+         (base-args (if (ide-cpp-multi-config-p)
                         (list "--install" build-tree "--config" build-type)
                       (list "--install" build-tree))))
     ;; run cmake
@@ -2786,7 +2856,7 @@ With PREFIX, prompt for extra args"
          (project-root (ide-common-get-current-context-project-root))
          (command (format "pack-%s" (downcase build-type)))
          (base-args (append (list "--config" (f-join build-tree "CPackConfig.cmake"))
-                            (when (ide-cpp-is-multi-config)
+                            (when (ide-cpp-multi-config-p)
                               (list "-C" build-type)))))
     ;; run cmake
     (ide-common-run-compile project-root command "cpack" base-args prefix)))
@@ -2808,7 +2878,7 @@ With PREFIX, prompt for extra args"
 (defun ide-cpp-hydra-dispatch ()
   "Open appropriate hydra for C++ projects."
   (interactive)
-  (if (ide-cpp-is-multi-config)
+  (if (ide-cpp-multi-config-p)
       (hydra-ide-cpp-project-multi-config/body)
     (hydra-ide-cpp-project-single-config/body)))
 
@@ -2876,59 +2946,150 @@ With PREFIX, prompt for extra args"
 ;;;; menu
 
 (defvar ide-cpp-build-menu-map (make-sparse-keymap)
-  "Keymap for the global Build menu minor mode.")
+  "Keymap for the Build menu minor mode.")
 
 (define-minor-mode ide-cpp-build-menu-mode
-  "Global minor mode to show the C++ Build menu."
-  :global t
+  "C++ Build menu for project buffers."
   :group 'ide-cpp
   :keymap ide-cpp-build-menu-map)
 
-;; Enable it globally
-(ide-cpp-build-menu-mode 1)
+(defun ide-cpp-submenu-initialize-items ()
+  "Return Initialize submenu variants for the Build menu."
+  (list
+   ;; multi-config variant
+   (list
+    :when #'ide-cpp-multi-config-p
+    :menu
+    '("Initialize"
+      ["Initialize" ide-cpp-initialize-debug t]
+      ["Initialize…" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-initialize-debug))) t]))
+   ;; single-config variant
+   (list
+    :when (lambda () (not (ide-cpp-multi-config-p)))
+    :menu
+    '("Initialize"
+      ("Initialize"
+       ["Debug" ide-cpp-initialize-debug t]
+       ["Release" ide-cpp-initialize-release t])
+      ("Initialize…"
+       ["Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-initialize-debug))) t]
+       ["Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-initialize-release))) t])))))
+
+(defun ide-cpp-submenu-configure-items ()
+  "Return Configure submenu variants for the Build menu."
+  (list
+   ;; multi-config variant
+   (list
+    :when #'ide-cpp-multi-config-p
+    :menu
+    '("Configure"
+      ["Configure" ide-cpp-configure-debug t]
+      ["Configure…" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-configure-debug))) t]))
+   ;; single-config variant
+   (list
+    :when (lambda () (not (ide-cpp-multi-config-p)))
+    :menu
+    '("Configure"
+      ("Configure"
+       ["Debug" ide-cpp-configure-debug t]
+       ["Release" ide-cpp-configure-release t])
+      ("Configure…"
+       ["Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-configure-debug))) t]
+       ["Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-configure-release))) t])))))
+
+(defun ide-cpp-submenu-build-items ()
+  "Return Build submenu variants for the Build menu."
+  (list
+   ;; multi-config variant
+   (list
+    :when #'ide-cpp-multi-config-p
+    :menu
+    '("Build"
+      ("Build"
+       ["Debug" ide-cpp-build-debug t]
+       ["Release" ide-cpp-build-release t])
+      ("Build…"
+       ["Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-build-debug))) t]
+       ["Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-build-release))) t])))
+   ;; single-config variant
+   (list
+    :when (lambda () (not (ide-cpp-multi-config-p)))
+    :menu
+    '("Build"
+      ["Build" ide-cpp-build-debug t]
+      ["Build…" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-build-debug))) t]))
+))
+
+(defun ide-cpp-submenu-install-items ()
+  "Return Install submenu variants for the Build menu."
+  (list
+   ;; multi-config variant
+   (list
+    :when #'ide-cpp-multi-config-p
+    :menu
+    '("Install"
+      ("Install"
+       ["Debug" ide-cpp-install-debug t]
+       ["Release" ide-cpp-install-release t])
+      ("Install…"
+       ["Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-install-debug))) t]
+       ["Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-install-release))) t])))
+   ;; single-config variant
+   (list
+    :when (lambda () (not (ide-cpp-multi-config-p)))
+    :menu
+    '("Install"
+      ["Install" ide-cpp-install-debug t]
+      ["Install…" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-install-debug))) t]))
+))
+
+(defun ide-cpp-submenu-pack-items ()
+  "Return Pack submenu variants for the Build menu."
+  (list
+   ;; multi-config variant
+   (list
+    :when #'ide-cpp-multi-config-p
+    :menu
+    '("Pack"
+      ("Pack"
+       ["Debug" ide-cpp-pack-debug t]
+       ["Release" ide-cpp-pack-release t])
+      ("Pack…"
+       ["Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-pack-debug))) t]
+       ["Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-pack-release))) t])))
+   ;; single-config variant
+   (list
+    :when (lambda () (not (ide-cpp-multi-config-p)))
+    :menu
+    '("Pack"
+      ["Pack" ide-cpp-build-debug t]
+      ["Pack…" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-pack-debug))) t]))
+))
+
+(defun ide-cpp-select-menu-items (items)
+  "Select menu ITEMS whose :when predicate is non-nil."
+  (mapcar
+   (lambda (item) (plist-get item :menu))
+   (seq-filter (lambda (item) (funcall (plist-get item :when))) items)))
 
 (easy-menu-define ide-cpp-menu-build ide-cpp-build-menu-map
   "C++ build and run menu."
-  '("Build"
+  `("Build/Run"
     ["Environment" ide-common-env-select-and-edit t]
     "---"
-    ["Initialize" ide-cpp-initialize-debug :visible (ide-cpp-is-multi-config)]
-    ["Modify and Initialize" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-initialize-debug))) :visible (ide-cpp-is-multi-config)]
-    ["Initialize Debug" ide-cpp-initialize-debug :visible (not (ide-cpp-is-multi-config))]
-    ["Modify and Initialize Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-initialize-debug))) :visible (not (ide-cpp-is-multi-config))]
-    ["Initialize Release" ide-cpp-initialize-release :visible (not (ide-cpp-is-multi-config))]
-    ["Modify and Initialize Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-initialize-release))) :visible (not (ide-cpp-is-multi-config))]
-
-    ["Configure" ide-cpp-configure-debug :visible (ide-cpp-is-multi-config)]
-    ["Modify and Configure" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-configure-debug))) :visible (ide-cpp-is-multi-config)]
-    ["Configure Debug" ide-cpp-configure-debug :visible (not (ide-cpp-is-multi-config))]
-    ["Modify and Configure Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-configure-debug))) :visible (not (ide-cpp-is-multi-config))]
-    ["Configure Release" ide-cpp-configure-release :visible (not (ide-cpp-is-multi-config))]
-    ["Modify and Configure Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-configure-release))) :visible (not (ide-cpp-is-multi-config))]
+    ,@(ide-cpp-select-menu-items (ide-cpp-submenu-initialize-items))
+    ,@(ide-cpp-select-menu-items (ide-cpp-submenu-configure-items))
     "---"
-    ["Build" ide-cpp-build-debug :visible (not (ide-cpp-is-multi-config))]
-    ["Modify and Build" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-build-debug))) :visible (not (ide-cpp-is-multi-config))]
-    ["Build Debug" ide-cpp-build-debug :visible (ide-cpp-is-multi-config)]
-    ["Modify and Build Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-build-debug))) :visible (ide-cpp-is-multi-config)]
-    ["Build Release" ide-cpp-build-release :visible (ide-cpp-is-multi-config)]
-    ["Modify and Build Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-build-release))) :visible (ide-cpp-is-multi-config)]
-    ["Install" ide-cpp-install-debug :visible (not (ide-cpp-is-multi-config))]
-    ["Modify and Install" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-install-debug))) :visible (not (ide-cpp-is-multi-config))]
-    ["Install Debug" ide-cpp-install-debug :visible (ide-cpp-is-multi-config)]
-    ["Modify and Install Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-install-debug))) :visible (ide-cpp-is-multi-config)]
-    ["Install Release" ide-cpp-build-release :visible (ide-cpp-is-multi-config)]
-    ["Modify and Install Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-build-release))) :visible (ide-cpp-is-multi-config)]
-    ["Pack" ide-cpp-pack-debug :visible (not (ide-cpp-is-multi-config))]
-    ["Modify and Pack" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-pack-debug))) :visible (not (ide-cpp-is-multi-config))]
-    ["Pack Debug" ide-cpp-pack-debug :visible (ide-cpp-is-multi-config)]
-    ["Modify and Pack Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-pack-debug))) :visible (ide-cpp-is-multi-config)]
-    ["Pack Release" ide-cpp-pack-release :visible (ide-cpp-is-multi-config)]
-    ["Modify and Pack Release" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-cpp-pack-release))) :visible (ide-cpp-is-multi-config)]
+    ,@(ide-cpp-select-menu-items (ide-cpp-submenu-build-items))
+    ,@(ide-cpp-select-menu-items (ide-cpp-submenu-install-items))
+    ,@(ide-cpp-select-menu-items (ide-cpp-submenu-pack-items))
     "---"
-    ["Debug" ide-common-debug-run-debugger t]
-    ["Modify and Debug" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-common-debug-run-debugger))) t]
-    ["Run" ide-common-launch-execute t]
-    ["Modify and Run" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-common-launch-execute))) t]
+    ("Debug"
+     ["Debug" ide-common-debug-run-debugger t]
+     ["Debug…" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-common-debug-run-debugger))) t])
+    ("Run"
+     ["Run" ide-common-launch-execute t]
+     ["Run…" (lambda () (interactive) (let ((current-prefix-arg '(4))) (call-interactively #'ide-common-launch-execute))) t])
     "---"
     ["Delete All Breakpoints" dap-breakpoint-delete-all t]
     ["Toggle Breakpoint" dap-breakpoint-toggle t]
