@@ -2886,8 +2886,11 @@ With PREFIX, prompt for extra args"
   (:title (concat
            (format "%s C++ Build & Run\n" (all-the-icons-material "build"))
            (propertize
+            (format "single-config, %s environment\n" (ide-common-env-get-current-profile (ide-common-get-current-context-project-root)))
+            'face 'shadow)
+           (propertize
             (substitute-command-keys
-             "Press `\\[universal-argument]' to modify arguments before executing") 'face 'shadow))
+             "Press `\\[universal-argument]' to modify arguments") 'face 'shadow))
    :quit-key ("q" "ESC")
    :color teal)
   ("Environment"
@@ -2915,8 +2918,11 @@ With PREFIX, prompt for extra args"
   (:title (concat
            (format "%s C++ Build & Run\n" (all-the-icons-material "build"))
            (propertize
+            (format "multi-config, %s environment\n" (ide-common-env-get-current-profile (ide-common-get-current-context-project-root)))
+            'face 'shadow)
+           (propertize
             (substitute-command-keys
-             "Press `\\[universal-argument]' to modify arguments before executing") 'face 'shadow))
+             "Press `\\[universal-argument]' to modify arguments") 'face 'shadow))
    :quit-key ("q" "ESC")
    :color teal)
   ("Environment"
