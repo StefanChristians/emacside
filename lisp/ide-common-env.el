@@ -495,7 +495,7 @@ The sequence format is [{name: NAME, value: VALUE }, ...]"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; key bindings
 
-(pretty-hydra-define hydra-ide-common-env
+(pretty-hydra-define ide-common-env-hydra
   (:title  (format "%s Environment Profiles" (all-the-icons-material "nature_people"))
           :color teal
           :quit-key ("q" "ESC"))
@@ -513,10 +513,14 @@ The sequence format is [{name: NAME, value: VALUE }, ...]"
    "Session"
    (("x" ide-common-env-quit "Close" :color blue))))
 
+(ide-register-hydra
+ 'ide-common-env-hydra/body
+ (lambda () (eq major-mode 'ide-common-env-mode))
+ 100)
+
 (defun ide-common-env-setup-keymap ()
   "Define keymap for `ide-common-env-mode'."
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c e") #'hydra-ide-common-env/body)
     (define-key map (kbd "a") #'ide-common-env-add)
     (define-key map (kbd "e") #'ide-common-env-edit-value)
     (define-key map (kbd "r") #'ide-common-env-edit-name)
@@ -538,7 +542,7 @@ The sequence format is [{name: NAME, value: VALUE }, ...]"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; menu
 
-(easy-menu-define ide-common-menu-environment ide-common-env-mode-map
+(easy-menu-define ide-common-env-menu ide-common-env-mode-map
   "Common environment editing menu."
   '("Environment"
     ["Add Variable" ide-common-env-add t]

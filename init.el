@@ -1050,22 +1050,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; hydra menus
 
-;; dispatcher
-(pretty-hydra-define dispatcher
-  (:title (format "%s Main Dispatcher" (all-the-icons-material "keyboard"))
-          :exit t :foreign-keys warn :quit-key ("q" "ESC"))
-  ("Menus"
-   (("a" appearance/body "appearance...")
-    ("b" behavior/body "behavior..."))
-
-   "Editing"
-   (("s" spellchecker/body "spellchecker...")
-    ("f" folding/body "folding...")
-    ("i" inflection/body "inflection..."))))
-(bind-key "C-c h" 'dispatcher/body)
-
-;; appearance
-(pretty-hydra-define appearance
+(pretty-hydra-define ide-hydra-appearance
   (:title (format "%s Appearance" (all-the-icons-material "desktop_windows"))
           :exit nil :foreign-keys warn :quit-key ("q" "ESC"))
   ("Theme"
@@ -1095,18 +1080,16 @@
     ("r" rainbow-delimiters-mode "rainbow parens" :toggle t)
     ("_" (setq x-stretch-cursor (not x-stretch-cursor)) "stretch cursor" :toggle x-stretch-cursor))))
 
-;; behavior
-(pretty-hydra-define behavior
+(pretty-hydra-define ide-hydra-behavior
   (:title (format "%s Behavior" (all-the-icons-material "touch_app"))
           :exit nil :foreign-keys warn :quit-key ("q" "ESC"))
   ("White space"
    (("f" (setq-local require-final-newline (not require-final-newline)) "add final newline" :toggle require-final-newline)
     ("t" ws-butler-mode "remove trailing white space" :toggle t))))
 
-;; spellchecker
-(pretty-hydra-define spellchecker
+(pretty-hydra-define ide-hydra-spellchecker
   (:title (format "%s Spellchecker" (all-the-icons-material "spellcheck"))
-          :exit nil :foreign-keys nil :quit-key ("q" "ESC"))
+          :color red :quit-key ("q" "ESC"))
   ("Check Spelling"
    (("b" flyspell-buffer "buffer")
     ("r" flyspell-region "region"))
@@ -1117,9 +1100,9 @@
     ("n" flyspell-correct-next "next word"))))
 
 ;; folding
-(pretty-hydra-define folding
+(pretty-hydra-define ide-hydra-folding
   (:title (format "%s Folding" (all-the-icons-material "subdirectory_arrow_right"))
-          :exit nil :foreign-keys nil :quit-key ("q" "ESC"))
+          :color red :quit-key ("q" "ESC"))
   ("Fold Code"
    (("t" origami-recursively-toggle-node "toggle")
     ("s" origami-show-only-node "show node")
@@ -1131,16 +1114,70 @@
     ("r" origami-redo "redo"))))
 
 ;; inflection
-(pretty-hydra-define inflection
+(pretty-hydra-define ide-hydra-inflection
   (:title (format "%s Inflection" (all-the-icons-material "text_format"))
           :exit nil :foreign-keys nil :quit-key ("q" "ESC"))
   ("String inflection"
    (("i" string-inflection-all-cycle "cycle")
     ("c" string-inflection-lower-camelcase "camelCase")
     ("p" string-inflection-camelcase "PascalCase")
-    ("-" string-inflection-kebabcase "kebab-case")
+    ("-" string-inflection-kebab-case "kebab-case")
     ("_" string-inflection-underscore "snake_case")
     ("u" string-inflection-upcase "UPPER_CASE"))))
+
+;; top-level fallback hydra
+(pretty-hydra-define ide-hydra-fallback
+  (:title (format "%s Main Dispatcher" (all-the-icons-material "keyboard"))
+          :color teal :quit-key ("q" "ESC"))
+  ("Interface"
+   (("a" ide-hydra-appearance/body "appearance…")
+    ("v" ide-hydra-behavior/body "behavior…"))
+   "Edit"
+   (("s" ide-hydra-spellchecker/body "spelling…")
+    ("f" ide-hydra-folding/body "folding…")
+    ("l" ide-hydra-inflection/body "inflection…"))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; hydra dispatcher
+
+(defvar ide-hydra-registry nil
+  "List of hydras for dispatcher selection.
+
+Each entry is a plist with keys:
+:body      Hydra body symbol
+:condition Predicate function
+:priority  dispatch order")
+
+(defun ide-register-hydra (body condition priority)
+  "Register a hydra.
+
+BODY the hydra body
+CONDITION predicate for dispatcher
+PRIORITY dispatch order (defaults to 10)"
+  (push (list :body body
+              :condition condition
+              :priority (or priority 10))
+        ide-hydra-registry))
+
+(defun ide-hydra-dispatch ()
+  "Invoke the highest priority hydra whose condition is true, or fallback."
+  (interactive)
+  (let* ((matches
+          (cl-remove-if-not
+           (lambda (e)
+             (let ((cond (plist-get e :condition)))
+               (and cond (funcall cond))))
+           ide-hydra-registry))
+         (best (car (sort matches
+                          (lambda (a b)
+                            (> (plist-get a :priority)
+                               (plist-get b :priority)))))))
+    (if best
+        (call-interactively (plist-get best :body))
+      (ide-hydra-fallback/body))))
+
+(bind-key "C-c h" 'ide-hydra-dispatch)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1151,18 +1188,13 @@
 (unless (file-directory-p extensions-dir) (make-directory extensions-dir))
 (push extensions-dir load-path)
 
-(use-package ide-common
-  :demand
-  :bind ("C-c y" . ide-common-yassify))
+(use-package ide-common)
 
 (use-package ide-lisp)
 
 (use-package ide-cpp
-  :demand
   :custom
-  (ide-common-default-project-parent "~/development/sandbox/")
-  :bind
-  (("C-c c" . ide-cpp-hydra-dispatch)))
+  (ide-common-default-project-parent "~/development/sandbox/"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

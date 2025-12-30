@@ -253,7 +253,7 @@ If SESSION is nil, use the current session."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; key bindings
 
-(pretty-hydra-define hydra-ide-common-debug
+(pretty-hydra-define ide-common-debug-hydra
   (:title (format "%s Active Debug Controls" (all-the-icons-material "bug_report"))
    :quit-key ("q" "ESC")
    :color pink
@@ -302,6 +302,11 @@ If SESSION is nil, use the current session."
     ("t" ide-common-debug-disconnect-and-delete-session "Terminate" :color red)
     ("X" ide-common-debug-disconnect-all-sessions "Disconnect all" :color blue)
     ("x" dap-disconnect "Disconnect" :color red))))
+
+(ide-register-hydra
+ 'ide-common-debug-hydra/body
+ (lambda () (and (fboundp 'dap--cur-session) (dap--cur-session)))
+ 50)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

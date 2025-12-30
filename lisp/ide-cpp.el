@@ -510,7 +510,7 @@ They are handled separately."
 (defun ide-cpp-multi-config-p ()
   "Return non-nil if a multi-config generator is being used.
 Uses an ephemeral per-project cache."
-  (when-let ((root (ide-common-get-project-root)))
+  (when-let ((root (ide-common-get-current-context-project-root)))
     (or (gethash root ide-cpp-multi-config-cache)
         (let ((value (ide-cpp-is-multi-config)))
           (puthash root value ide-cpp-multi-config-cache)
@@ -518,7 +518,7 @@ Uses an ephemeral per-project cache."
 
 (defun ide-cpp-warm-project-cache ()
   "Precompute project state for the current buffer."
-  (when (ide-cpp-is-cmake-project)
+  (when (ide-cpp-buffer-is-cmake-project)
     (ide-cpp-multi-config-p)))
 (add-hook 'find-file-hook #'ide-cpp-warm-project-cache)
 (add-hook 'after-change-major-mode-hook #'ide-cpp-warm-project-cache)
@@ -1367,6 +1367,12 @@ or read the CMAKE_GENERATOR environment variable."
     (string-match-p "\\(Visual\\|Xcode\\|Multi\\|MULTI\\)" gen)))
 
 (defun ide-cpp-is-cmake-project ()
+  "Return non-nil if the current project is a CMake project."
+  (when-let ((root (ide-common-get-current-context-project-root)))
+    (file-exists-p
+     (expand-file-name "CMakeLists.txt" root))))
+
+(defun ide-cpp-buffer-is-cmake-project ()
   "Return non-nil if the current buffer belongs to a CMake project."
   (when-let ((root (ffip-project-root)))
     (file-exists-p
@@ -1382,7 +1388,7 @@ or read the CMAKE_GENERATOR environment variable."
 (defun ide-cpp-init-project-context ()
   "Initialize buffer project context whether it belongs to a CMake project."
   (when buffer-file-name
-    (setq ide-cpp-cmake-project-p (ide-cpp-is-cmake-project))))
+    (setq ide-cpp-cmake-project-p (ide-cpp-buffer-is-cmake-project))))
 
 (defun ide-cpp-on-buffer-init ()
   "Call project context initialization on buffer."
@@ -2875,14 +2881,7 @@ With PREFIX, prompt for extra args"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; hydra menus
 
-(defun ide-cpp-hydra-dispatch ()
-  "Open appropriate hydra for C++ projects."
-  (interactive)
-  (if (ide-cpp-multi-config-p)
-      (hydra-ide-cpp-project-multi-config/body)
-    (hydra-ide-cpp-project-single-config/body)))
-
-(pretty-hydra-define hydra-ide-cpp-project-single-config
+(pretty-hydra-define ide-cpp-hydra-build-single-config
   (:title (concat
            (format "%s C++ Build & Run\n" (all-the-icons-material "build"))
            (propertize
@@ -2893,28 +2892,47 @@ With PREFIX, prompt for extra args"
              "Press `\\[universal-argument]' to modify arguments") 'face 'shadow))
    :quit-key ("q" "ESC")
    :color teal)
-  ("Environment"
-   (("e" ide-common-env-select-and-edit "Select Environment"))
-  "Configure"
-   (("C" (lambda (arg) (interactive "P") (ide-cpp-configure-release arg)) "Configure Release")
-    ("c" (lambda (arg) (interactive "P") (ide-cpp-configure-debug arg)) "Configure Debug")
-    ("I" (lambda (arg) (interactive "P") (ide-cpp-initialize-release arg)) "Initialize Release")
-    ("i" (lambda (arg) (interactive "P") (ide-cpp-initialize-debug arg)) "Initialize Debug"))
+  ("Edit"
+   (("s" ide-hydra-spellchecker/body "spelling…")
+    ("f" ide-hydra-folding/body "folding…")
+    ("l" ide-hydra-inflection/body "inflection…"))
+   "Configure"
+   (("C" (lambda (arg) (interactive "P") (ide-cpp-configure-release arg)) "Configure rel")
+    ("c" (lambda (arg) (interactive "P") (ide-cpp-configure-debug arg)) "Configure dbg")
+    ("I" (lambda (arg) (interactive "P") (ide-cpp-initialize-release arg)) "Initialize rel")
+    ("i" (lambda (arg) (interactive "P") (ide-cpp-initialize-debug arg)) "Initialize dbg")
+    ("e" ide-common-env-select-and-edit "Environment")
+    ("a" ide-hydra-appearance/body "appearance…")
+    ("v" ide-hydra-behavior/body "behavior…"))
    "Build"
    (("p" (lambda (arg) (interactive "P") (ide-cpp-pack-debug arg)) "Pack")
     ("n" (lambda (arg) (interactive "P") (ide-cpp-install-debug arg)) "Install")
     ("b" (lambda (arg) (interactive "P") (ide-cpp-build-debug arg)) "Build"))
-   "Launch"
-   (("r" (lambda (arg) (interactive "P") (ide-common-launch-execute arg)) "Run" :color blue)
-    ("d" (lambda (arg) (interactive "P") (ide-common-debug-run-debugger arg)) "Debug" :color blue))
    "Breakpoints"
-   (("T" dap-breakpoint-delete-all "Delete All")
+   (("T" dap-breakpoint-delete-all "Delete all")
     ("t" dap-breakpoint-toggle "toggle"))
-   "Session"
+   "Launch"
    (("X" ide-common-debug-disconnect-and-delete-all-sessions "Terminate All" :color blue)
-    ("x" ide-common-debug-disconnect-all-sessions "Disconnect All"))))
+    ("x" ide-common-debug-disconnect-all-sessions "Disconnect All")
+    ("r" (lambda (arg) (interactive "P") (ide-common-launch-execute arg)) "Run" :color blue)
+    ("d" (lambda (arg) (interactive "P") (ide-common-debug-run-debugger arg)) "Debug" :color blue))))
 
-(pretty-hydra-define hydra-ide-cpp-project-multi-config
+(defun ide-cpp-show-single-config-hydra-p ()
+  "Return non-nil if this is a single-config CMake project."
+  (and
+   ;; is this a cmake project?
+   (if (buffer-file-name)
+       ide-cpp-cmake-project-p
+     (ide-cpp-is-cmake-project))
+   ;; does it use a single-config generator?
+   (not (ide-cpp-multi-config-p))))
+
+(ide-register-hydra
+ 'ide-cpp-hydra-build-single-config/body
+ #'ide-cpp-show-single-config-hydra-p
+ 10)
+
+(pretty-hydra-define ide-cpp-hydra-build-multi-config
   (:title (concat
            (format "%s C++ Build & Run\n" (all-the-icons-material "build"))
            (propertize
@@ -2925,27 +2943,47 @@ With PREFIX, prompt for extra args"
              "Press `\\[universal-argument]' to modify arguments") 'face 'shadow))
    :quit-key ("q" "ESC")
    :color teal)
-  ("Environment"
-   (("e" ide-common-env-select-and-edit "Select Environment"))
+  ("Edit"
+   (("s" ide-hydra-spellchecker/body "spelling…")
+    ("f" ide-hydra-folding/body "folding…")
+    ("l" ide-hydra-inflection/body "inflection…"))
   "Configure"
    (("c" (lambda (arg) (interactive "P") (ide-cpp-configure-debug arg)) "Configure")
-    ("i" (lambda (arg) (interactive "P") (ide-cpp-initialize-debug arg)) "Initialize"))
+    ("i" (lambda (arg) (interactive "P") (ide-cpp-initialize-debug arg)) "Initialize")
+    ("e" ide-common-env-select-and-edit "Environment")
+    ("a" ide-hydra-appearance/body "appearance…")
+    ("v" ide-hydra-behavior/body "behavior…"))
    "Build"
-   (("P" (lambda (arg) (interactive "P") (ide-cpp-pack-release arg)) "Pack Release")
-    ("p" (lambda (arg) (interactive "P") (ide-cpp-pack-debug arg)) "Pack Debug")
-    ("N" (lambda (arg) (interactive "P") (ide-cpp-install-release arg)) "Install Release")
-    ("n" (lambda (arg) (interactive "P") (ide-cpp-install-debug arg)) "Install Debug")
-    ("B" (lambda (arg) (interactive "P") (ide-cpp-build-release arg)) "Build Release")
-    ("b" (lambda (arg) (interactive "P") (ide-cpp-build-debug arg)) "Build Debug"))
-   "Launch"
-   (("r" (lambda (arg) (interactive "P") (ide-common-launch-execute arg)) "Run" :color blue)
-    ("d" (lambda (arg) (interactive "P") (ide-common-debug-run-debugger arg)) "Debug" :color blue))
+   (("P" (lambda (arg) (interactive "P") (ide-cpp-pack-release arg)) "Pack rel")
+    ("p" (lambda (arg) (interactive "P") (ide-cpp-pack-debug arg)) "Pack dbg")
+    ("N" (lambda (arg) (interactive "P") (ide-cpp-install-release arg)) "Install rel")
+    ("n" (lambda (arg) (interactive "P") (ide-cpp-install-debug arg)) "Install dbg")
+    ("B" (lambda (arg) (interactive "P") (ide-cpp-build-release arg)) "Build rel")
+    ("b" (lambda (arg) (interactive "P") (ide-cpp-build-debug arg)) "Build dbg"))
    "Breakpoints"
-   (("T" dap-breakpoint-delete-all "Delete All")
-    ("t" dap-breakpoint-toggle "toggle"))
-   "Session"
+   (("T" dap-breakpoint-delete-all "Delete all")
+    ("t" dap-breakpoint-toggle "Toggle"))
+   "Launch"
    (("X" ide-common-debug-disconnect-and-delete-all-sessions "Terminate All" :color blue)
-    ("x" ide-common-debug-disconnect-all-sessions "Disconnect All"))))
+    ("x" ide-common-debug-disconnect-all-sessions "Disconnect All")
+    ("r" (lambda (arg) (interactive "P") (ide-common-launch-execute arg)) "Run" :color blue)
+    ("d" (lambda (arg) (interactive "P") (ide-common-debug-run-debugger arg)) "Debug" :color blue))))
+
+(defun ide-cpp-show-multi-config-hydra-p ()
+  "Return non-nil if this is a multi-config CMake project."
+  (and
+   ;; is this a cmake project?
+   (if (buffer-file-name)
+       ide-cpp-cmake-project-p
+     (ide-cpp-is-cmake-project))
+   ;; does it use a multi-config generator?
+   (ide-cpp-multi-config-p)))
+
+(ide-register-hydra
+ 'ide-cpp-hydra-build-multi-config/body
+ #'ide-cpp-show-multi-config-hydra-p
+ 20)
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

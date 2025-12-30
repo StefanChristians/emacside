@@ -519,7 +519,7 @@ and project, with syntax-aware coloring."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; key bindings
 
-(pretty-hydra-define hydra-ide-common-args
+(pretty-hydra-define ide-common-args-hydra
   (:title  (format "%s Argument Profiles" (all-the-icons-material "format_list_bulleted"))
           :color teal
           :quit-key ("q" "ESC"))
@@ -533,10 +533,14 @@ and project, with syntax-aware coloring."
    (("X" ide-common-args-close "Quit" :color blue)
     ("x" ide-common-args-save-and-close "Close" :color blue))))
 
+(ide-register-hydra
+ 'ide-common-args-hydra/body
+ (lambda () (eq major-mode 'ide-common-args-mode))
+ 100)
+
 (defun ide-common-args-setup-keymap ()
   "Define keymap for `ide-common-args-mode'."
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c a") #'hydra-ide-common-args/body)
     (define-key map (kbd "M-p") #'ide-common-args-save-and-change-profile)
     (define-key map (kbd "M-r") #'ide-common-args-save-and-rename-profile)
     (define-key map (kbd "M-c") #'ide-common-args-save-and-clone-profile)

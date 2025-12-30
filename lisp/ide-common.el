@@ -980,9 +980,7 @@ DO-PROMPT if none-nil, prompt user for arguments profile,
 
 (use-package ide-common-env)
 (use-package ide-common-args)
-(use-package ide-common-debug
-  :demand
-  :bind (("C-c d" . hydra-ide-common-debug/body)))
+(use-package ide-common-debug)
 (use-package ide-common-launch)
 
 
