@@ -381,13 +381,15 @@ If PATH is nil, return project root for `default-directory'."
   "Return project root based on current buffer or Treemacs selection."
   (let ((path
          (or
-          ;; Treemacs selected node
-          (when (and (fboundp 'treemacs-current-button)
-                     (treemacs-current-button))
-            (treemacs-button-get (treemacs-current-button) :path))
           ;; Current buffer file
           (when buffer-file-name
-            (f-dirname buffer-file-name)))))
+            (f-dirname buffer-file-name))
+          ;; Treemacs selected node
+          (when (and (featurep 'treemacs)
+                     (treemacs-get-local-buffer))
+            (with-current-buffer (treemacs-get-local-buffer)
+              (when-let ((btn (treemacs-current-button)))
+                (treemacs-button-get btn :path)))))))
     (ide-common-get-project-root path)))
 
 (defun ide-common-is-project-root (&optional file)
