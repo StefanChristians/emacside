@@ -68,6 +68,15 @@
                  (const :tag "camelCase" "camel")
                  (const :tag "PascalCase" "pascal")))
 
+(defcustom ide-common-objectname-case "camel"
+  "Case in which to create new object names."
+  :group 'ide-common
+  :type '(choice (const :tag "snake_case" "snake")
+                 (const :tag "kebab-case" "kebab")
+                 (const :tag "UPPER_CASE" "upper")
+                 (const :tag "camelCase" "camel")
+                 (const :tag "PascalCase" "pascal")))
+
 (defcustom ide-common-available-licenses spdx-data-license-identifiers
   "List of licenses under which to publish a project."
   :group 'ide-common
@@ -245,6 +254,11 @@ Remove leading and trailing underscores and apply snake case."
     (replace-regexp-in-string
      "[[:punct:][:blank:]_]+" "_"
      text))))
+
+(defun ide-common-normalize-objectname (text)
+  "Convert TEXT to valid object name."
+  (ide-common-convert-string
+   (ide-common-normalize-string text) ide-common-objectname-case))
 
 (defun ide-common-normalize-classname (text)
   "Convert TEXT to valid class name."

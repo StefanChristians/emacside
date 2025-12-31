@@ -1239,6 +1239,10 @@ EXTENSIONS list of extensions to test"
   "Return project or submodule name for FILE formatted as class name."
   (ide-common-normalize-classname (ide-cpp-project-or-submodule-name file)))
 
+(defun ide-cpp-project-or-submodule-object (&optional file)
+  "Return project or submodule name for FILE formatted as object name."
+  (ide-common-normalize-objectname (ide-cpp-project-or-submodule-name file)))
+
 (defun ide-cpp-project-or-submodule-file (&optional file)
   "Return project or submodule name for FILE formatted as file name."
   (ide-cpp-project-or-submodule-name file))
