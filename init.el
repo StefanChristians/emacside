@@ -1028,7 +1028,7 @@
   :functions yas-reload-all
   :hook (((text-mode prog-mode conf-mode snippet-mode) . yas-minor-mode-on)
          (snippet-mode . (lambda () (setq-local require-final-newline nil))))
-  :bind ("C-c C-s" . yas-insert-snippet)
+  :bind ("C-c C-i" . yas-insert-snippet)
   :config
   (yas-reload-all))
 
