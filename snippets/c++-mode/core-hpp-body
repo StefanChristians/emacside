@@ -6,6 +6,6 @@ class `(ide-cpp-project-or-submodule-class)` {
 public:
   /// Get information about this project
   /// \\returns Project name and version
-  const std::string about() const;
+  static const std::string about();
 };
 $0

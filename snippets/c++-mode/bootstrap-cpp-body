@@ -22,8 +22,7 @@ int run(int argc, char *argv[]) \{
   }
 
   // replace this code with something meaningful
-  auto `(ide-cpp-project-or-submodule-object)` = std::make_unique<`(ide-cpp-project-or-submodule-class)`>();
-  std::cout << `(ide-cpp-project-or-submodule-object)`->about() << std::endl;
+  std::cout << `(ide-cpp-project-or-submodule-class)`::about() << std::endl;
 
 `(when (ide-cpp-has-environment-sibling) (progn
   (insert "  // do some locale stuff\n")
