@@ -40,12 +40,12 @@ const std::string Environment::locale() const \{
   return localeName_;
 \}
 
-const std::string Environment::executablePath() const \{
+const std::string Environment::executablePath() \{
   return boost::dll::program_location().parent_path().string();
 \}
 
 const std::string
-Environment::useDefaultUTF8LocaleEncoding(const std::string &id) const \{
+Environment::useDefaultUTF8LocaleEncoding(const std::string &id) \{
   if (!std::empty(id) && id.find('.') == std::string::npos) \{
     // no encoding specified in locale ID, default to UTF-8
     return format("\{\}.UTF-8", id);

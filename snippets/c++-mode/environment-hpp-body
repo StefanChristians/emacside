@@ -19,7 +19,7 @@ public:
 
 private:
   /// \\returns path to running executable
-  const std::string executablePath() const;
+  static const std::string executablePath();
 
   /// Ensure a locale ID specifies the encoding.
   ///
@@ -27,7 +27,7 @@ private:
   ///
   /// \\param id locale ID in the form "en_US" or "en_US.UTF-8"
   /// \\returns fully qualified locale ID in the form "en_US.UTF-8"
-  const std::string useDefaultUTF8LocaleEncoding(const std::string &id) const;
+  static const std::string useDefaultUTF8LocaleEncoding(const std::string &id);
 
   /// Current Locale
   std::locale locale_;
