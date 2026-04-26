@@ -14,7 +14,7 @@
 Below is a list of available options:
 
 ** ~-h,--help~
-Displays usage information and details about the available options.
+Displays usage information and details about available options.
 
 Usage:
 #+BEGIN_SRC sh
