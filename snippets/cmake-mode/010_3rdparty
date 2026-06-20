@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: 3rd_party
+# name: 3rdparty
 # group: module
 # --
 include_guard(GLOBAL)
