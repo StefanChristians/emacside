@@ -6,6 +6,8 @@ include_guard(GLOBAL)
 
 # dynamic program analysis
 
+include(fetchcontent_persist)
+
 # default location for generated valgrind reports
 set(CMAKE_MEMCHECK_OUTPUT_DIR "output/reports/memcheck" CACHE STRING "Output directory in build tree for generated memory leakage reports.")
 

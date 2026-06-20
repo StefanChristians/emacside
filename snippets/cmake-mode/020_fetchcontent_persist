@@ -7,6 +7,7 @@ include_guard(GLOBAL)
 # Download dependencies only once.
 
 include(FetchContent)
+include(3rdparty)
 
 # default location to download dependencies with FetchContent_Declare()
 if(DEFINED ENV\{CMAKE_FETCHCONTENT_DOWNLOAD_DIR\})

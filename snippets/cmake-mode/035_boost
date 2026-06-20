@@ -4,7 +4,19 @@
 # --
 include_guard(GLOBAL)
 
-# Provide Boost libraries.
+# Boost — collection of high-quality C++ libraries.
+
+# --- 1. Sibling dependencies ---
+
+include(fetchcontent_persist)
+
+# --- 2. Upstream build options ---
+
+# Boost.Iostreams probes the system for zstd and, if found, imports it as
+# zstd::libzstd_shared - we don't need it
+set(BOOST_IOSTREAMS_ENABLE_ZSTD OFF CACHE BOOL "" FORCE)
+
+# --- 3. Declare ---
 
 FetchContent_Declare_Persist(
   Boost
@@ -16,10 +28,22 @@ FetchContent_Declare_Persist(
   EXCLUDE_FROM_ALL
 )
 
-fetchcontent_makeavailable(Boost)
+# --- 4. Make available ---
+
+FetchContent_MakeAvailable(Boost)
+
+# --- 5. Post-adapt ---
+
+register_3rdparty(Boost
+    DISPLAY      "Boost"
+    URL          "https://www.boost.org/"
+    LICENSE_NAME "Boost Software License 1.0"
+    LICENSE_URL  "https://www.boost.org/users/license.html"
+    LICENSE_FILE "LICENSE_1_0.txt"
+)
 
 # load individual boost libraries later like this:
 # find_package(Boost REQUIRED COMPONENTS <library> <library> ...)
-
+#
 # add boost libraries to targets later like this:
 # target_link_library_if_exists(<target> Boost::<library>)

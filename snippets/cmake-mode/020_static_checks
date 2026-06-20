@@ -39,7 +39,7 @@ endif()
 function(static_checks target)
   if(CLANGTIDY_FOUND)
     # use "--checks=*" for all checks
-    set(command "\$\{CLANGTIDY_EXECUTABLE\};--warnings-as-errors=*;--fix;--fix-errors;--fix-notes;--format-style=file;-header-filter='^\$\{CMAKE_SOURCE_DIR\}/.*'")
+    set(command "\$\{CLANGTIDY_EXECUTABLE\};--checks=clang-analyzer-*;--warnings-as-errors=*;--fix;--fix-errors;--fix-notes;--format-style=file;-header-filter='^\$\{CMAKE_SOURCE_DIR\}/.*'")
     set_target_properties(
       \$\{target\}
       PROPERTIES

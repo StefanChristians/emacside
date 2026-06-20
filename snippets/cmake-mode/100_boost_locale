@@ -6,4 +6,6 @@ include_guard(GLOBAL)
 
 # high quality localization facilities
 
+include(boost)
+
 find_package(Boost REQUIRED COMPONENTS locale)

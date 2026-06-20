@@ -6,6 +6,10 @@ include_guard(GLOBAL)
 
 # Generate documentation.
 
+include(utilities)
+include(api_documentation)
+include(graphviz)
+
 # generic documentation target
 add_custom_target(docs DEPENDS apidocs graphviz COMMENT "Generating documentation")
 add_dependency_if_exists(docs userdocs)

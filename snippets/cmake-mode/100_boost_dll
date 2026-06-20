@@ -6,4 +6,6 @@ include_guard(GLOBAL)
 
 # comfortable work with DLL and DSO
 
+include(boost)
+
 find_package(Boost REQUIRED COMPONENTS dll)

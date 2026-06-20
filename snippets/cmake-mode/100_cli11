@@ -4,9 +4,16 @@
 # --
 include_guard(GLOBAL)
 
-# CLI11 command line argument parser
+# CLI11 — command line argument parser.
 
-# download CLI11
+# --- 1. Sibling dependencies ---
+
+include(fetchcontent_persist)
+
+# --- 2. Upstream build options ---
+
+# --- 3. Declare ---
+
 FetchContent_Declare_Persist(
   cli11
   GIT_REPOSITORY "https://github.com/CLIUtils/CLI11.git"
@@ -15,4 +22,15 @@ FetchContent_Declare_Persist(
   GIT_SHALLOW ON
 )
 
+# --- 4. Make available ---
+
 FetchContent_MakeAvailable(cli11)
+
+# --- 5. Post-adapt ---
+
+register_3rdparty(cli11
+    DISPLAY      "CLI11"
+    URL          "https://github.com/CLIUtils/CLI11"
+    LICENSE_NAME "CLI11 License"
+    LICENSE_URL  "https://github.com/CLIUtils/CLI11?tab=License-1-ov-file#readme"
+)

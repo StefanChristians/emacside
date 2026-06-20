@@ -6,6 +6,9 @@ include_guard(GLOBAL)
 
 # Build API documentation using Doxygen.
 
+include(fetchcontent_persist)
+include(install)
+
 # default locations for generated api documentation
 set(CMAKE_PRIVATE_APIDOCS_OUTPUT_DIR "output/docs/api_private" CACHE STRING "Output directory in build tree for generated private API documentation.")
 set(CMAKE_PUBLIC_APIDOCS_OUTPUT_DIR "output/docs/api_public" CACHE STRING "Output directory in build tree for generated public API documentation.")

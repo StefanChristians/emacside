@@ -4,16 +4,19 @@
 # --
 include_guard(GLOBAL)
 
+# Default install prefix to the in-project staging directory.
+# Must run BEFORE include(GNUInstallDirs): on Linux, GNUInstallDirs uses
+# CMAKE_INSTALL_PREFIX to choose lib vs lib64.
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/install" CACHE PATH "Install path prefix" FORCE)
+  unset(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+endif()
+
 # platform-dependent installation directories
 include(GNUInstallDirs)
 
 # macros for generating export config file
 include(CMakePackageConfigHelpers)
-
-# Set default install prefix to a relative staging directory if not defined
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX "\$\{CMAKE_SOURCE_DIR\}/install" CACHE PATH "Install path prefix" FORCE)
-endif()
 
 # installs target under the project subdirectory in lib64/project/libtarget.a
 # target can then be imported with find_package(project COMPONENTS target)
@@ -100,6 +103,14 @@ macro(pack)
                 "  TYPE DOC COMPONENT devel\n"
                 ")\n")))`
 
+    # install 3rd party attributions for both runtime and devel
+    install(FILES "\$\{CMAKE_BINARY_DIR\}/3rdparty/THIRD-PARTY-LICENSES"
+      TYPE DOC
+      COMPONENT runtime)
+    install(FILES "\$\{CMAKE_BINARY_DIR\}/3rdparty/THIRD-PARTY-LICENSES"
+      TYPE DOC
+      COMPONENT devel)
+
     # configure exports for use with find_package()
     set(CONFIG_IN_FILE "\$\{CMAKE_CURRENT_SOURCE_DIR\}/cmake/export-config.cmake${2:`ide-cpp-default-cmake-dynamic-config-extension`}")
     if(EXISTS "\$\{CONFIG_IN_FILE\}")
@@ -143,7 +154,7 @@ macro(pack)
     set(CPACK_COMPONENT_RUNTIME_DISPLAY_NAME "Runtime")
     set(CPACK_COMPONENT_RUNTIME_DESCRIPTION  "Runtime files: executables, shared libraries, translation files, user documentation, etc.")
     set(CPACK_COMPONENT_DEVEL_DISPLAY_NAME "Development Files")
-    set(CPACK_COMPONENT_DEVEL_DISPLAY_NAME "Development files: static libraries, public headers, CMake configuration, api documentation, etc.")
+    set(CPACK_COMPONENT_DEVEL_DESCRIPTION "Development files: static libraries, public headers, CMake configuration, api documentation, etc.")
 
     set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
     set(CPACK_PACKAGE_DIRECTORY "${3:`ide-cpp-default-pack-directory`}")
