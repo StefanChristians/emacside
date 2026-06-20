@@ -24,7 +24,7 @@ if (GRAPHVIZ_EXECUTABLE)
   message(STATUS "Found Graphviz: \$\{GRAPHVIZ_EXECUTABLE\} (found version \\"\$\{GRAPHVIZ_VERSION\}\\")")
   add_custom_target(
     graphviz
-    COMMAND \$\{CMAKE_COMMAND\} "--graphviz=\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_GRAPHVIZ_OUTPUT_DIR\}/graph.dot" .
+    COMMAND \$\{CMAKE_COMMAND\} "-Wno-deprecated" "--graphviz=\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_GRAPHVIZ_OUTPUT_DIR\}/graph.dot" .
     COMMAND \$\{GRAPHVIZ_EXECUTABLE\} -T\$\{CMAKE_GRAPHVIZ_OUTPUT_TYPE\} "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_GRAPHVIZ_OUTPUT_DIR\}/graph.dot" -o "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_GRAPHVIZ_OUTPUT_DIR\}/graph.\$\{CMAKE_GRAPHVIZ_OUTPUT_TYPE\}"
     WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
   )
