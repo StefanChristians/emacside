@@ -2,7 +2,7 @@
 
 ;; Version: 0.0.1
 
-;; Copyright (C) 2022, 2023, 2024, 2025 Stefan Christians
+;; Copyright (C) 2022, 2023, 2024, 2025, 2026 Stefan Christians
 ;; SPDX-License-Identifier: MIT
 
 ;;; Commentary:
@@ -2632,12 +2632,18 @@ before calling `ide-common-register-auto-inserts'."
   '(ide-common-insert-snippet "cmake_c_standard")
   '(ide-common-insert-snippet "cmake_cxx_standard")
   "\n"
+  "set(BUILD_SHARED_LIBS OFF CACHE BOOL \"\" FORCE)\n"
+  "set(CMAKE_POSITION_INDEPENDENT_CODE ON)\n"
+  "\n"
   '(ide-common-insert-snippet "modules")
+  "\n"
+  "emit_3rdparty_licenses(\"${CMAKE_BINARY_DIR}/3rdparty\")\n"
   "\n"
   "enable_testing()\n"
   "\n"
   '(ide-common-insert-snippet "subdirs")
   "\n"
+  "finalize_coverage()\n"
   '(ide-common-insert-snippet "apidocs")
   '(ide-common-insert-snippet "userdocs")
   "docs_generate()\n"

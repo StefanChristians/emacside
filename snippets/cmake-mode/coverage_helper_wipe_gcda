@@ -1,0 +1,16 @@
+# -*- mode: snippet -*-
+# name: coverage_helper_wipe_gcda
+# group: script
+# --
+# coverage_helper_wipe_gcda.cmake
+# Usage:
+#   cmake -DMODE=wipe-gcda -DSEARCH_DIR=<dir> -P coverage_helper_wipe_gcda.cmake
+
+if(MODE STREQUAL "wipe-gcda")
+  file(GLOB_RECURSE _gcda_files "\$\{SEARCH_DIR\}/*.gcda")
+  if(_gcda_files)
+    file(REMOVE \$\{_gcda_files\})
+  endif()
+else()
+  message(FATAL_ERROR "coverage_helper_wipe_gcda.cmake: unknown MODE '\$\{MODE\}'")
+endif()

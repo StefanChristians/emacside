@@ -9,9 +9,6 @@ include_guard(GLOBAL)
 # default location for generated coverage reports
 set(CMAKE_COVERAGE_OUTPUT_DIR "output/reports/coverage" CACHE STRING "Output directory in build tree for generated code coverage reports.")
 
-# force synchronous processing
-set_property(GLOBAL PROPERTY JOB_POOLS llvm-cov-sync=1)
-
 # required binaries
 find_program(LLVMCOV_EXECUTABLE llvm-cov)
 find_program(LLVMPROFDATA_EXECUTABLE llvm-profdata)
@@ -47,7 +44,6 @@ if(\$\{COVERAGE_AVAILABLE\})
     else()
       message(STATUS "llvm-cov not found - code coverage disabled")
       set(COVERAGE_AVAILABLE False)
-      break()
     endif()
 
     # check for llvm-profdata executable
@@ -56,7 +52,6 @@ if(\$\{COVERAGE_AVAILABLE\})
     else()
       message(STATUS "llvm-profdata not found - code coverage disabled")
       set(COVERAGE_AVAILABLE False)
-      break()
     endif()
 
   elseif("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "GNU" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "GNU")
@@ -74,7 +69,6 @@ if(\$\{COVERAGE_AVAILABLE\})
     else()
       message(STATUS "gcov not found - code coverage disabled")
       set(COVERAGE_AVAILABLE False)
-      break()
     endif()
 
     # check for GCovr executable
@@ -88,13 +82,11 @@ if(\$\{COVERAGE_AVAILABLE\})
     else()
       message(STATUS "GCovr not found - code coverage disabled")
       set(COVERAGE_AVAILABLE False)
-      break()
     endif()
 
   else()
     message(STATUS "incompatible compiler - code coverage disabled")
     set(COVERAGE_AVAILABLE False)
-    break()
   endif()
 endif()
 
@@ -108,79 +100,74 @@ if(\$\{COVERAGE_AVAILABLE\})
 
   if("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "GNU" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "GNU")
 
-    add_custom_target(
-      coverage
-      COMMAND
-      "\$\{GCOVR_EXECUTABLE\}"
-      -r "\$\{CMAKE_SOURCE_DIR\}"
-      --exclude ".*_thin_wrapper\\.*"
-      --exclude ".*_interface\\..*"
-      --object-directory "\$\{CMAKE_BINARY_DIR\}"
-      --exclude-unreachable-branches
-      --exclude-throw-branches
-      --html-details "\$\{reportdir\}/index.html"
-      --sonarqube "\$\{reportdir\}/sonarqube.xml"
-      VERBATIM
-      BYPRODUCTS "\$\{reportdir\}/index.html" "\$\{reportdir\}/sonarqube.xml"
+    # The gcov coverage target aggregates per-test run targets added by
+    # report_coverage(); the gcovr invocation is wired in by finalize_coverage()
+    # once all search dirs are known.
+    add_custom_target(coverage
       COMMENT "Generating code coverage reports"
-      WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
     )
 
   elseif("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "Clang" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "Clang")
 
     set(datadir "\$\{reportdir\}/profiles")
     file(MAKE_DIRECTORY "\$\{datadir\}")
-    set(objects_cache "\$\{datadir\}/objects.txt")
+    # Response files are written per-config by finalize_coverage(); use \$<CONFIG>
+    # in these paths so each config gets its own file and its own invocation.
+    set(objects_cache "\$\{datadir\}/objects-\$<CONFIG>.txt")
+    set(profiles_cache "\$\{reportdir\}/profiles-\$<CONFIG>.txt")
     set(merged_profiles "\$\{datadir\}/merged.profdata")
 
-    # target to enforce object dependencies
-    add_custom_target(llvm-cov-objects)
-
-    # target to merge individual raw profiles
+    # target to merge individual raw profiles — reads @profiles_cache written by
+    # finalize_coverage() at generate time, so no glob over the filesystem needed
     add_custom_target(
       llvm-cov-merge
-      COMMAND \$\{LLVMPROFDATA_EXECUTABLE\} merge --sparse "\$\{datadir\}/*.profraw" -o "\$\{merged_profiles\}"
+      COMMAND \$\{LLVMPROFDATA_EXECUTABLE\} merge --sparse "--input-files=\$\{profiles_cache\}" -o "\$\{merged_profiles\}"
       BYPRODUCTS "\$\{merged_profiles\}"
       COMMENT "Merging code coverage metrics"
       WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
-      JOB_POOL llvm-cov-sync
+      VERBATIM
     )
 
-    # target to generate reports
-    if(WIN32)
-      add_custom_target(
-        coverage
-        # json
-        COMMAND powershell -Command \$\$FILELIST = Get-Content "\$\{objects_cache\}" \\; llvm-cov.exe export \$\$FILELIST -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -format="text" -sources "\$\{CMAKE_SOURCE_DIR\}"
-        # html
-        COMMAND powershell -Command \$\$FILELIST = Get-Content "\$\{objects_cache\}" \\; llvm-cov.exe show \$\$FILELIST -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -show-line-counts-or-regions -output-dir="\$\{reportdir\}" -format="html" -sources "\$\{CMAKE_SOURCE_DIR\}"
-        # terminal
-        #COMMAND powershell -Command \$\$FILELIST = Get-Content "\$\{objects_cache\}" \\; llvm-cov.exe report \$\$FILELIST -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -sources "\$\{CMAKE_SOURCE_DIR\}"
-        DEPENDS llvm-cov-merge
-        BYPRODUCTS "\$\{reportdir\}/coverage.json" "\$\{reportdir\}/coverage.html"
-        COMMENT "Generating code coverage reports"
-        WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
-      )
-    else()
-      add_custom_target(
-        coverage
-        # json
-        COMMAND \$\{LLVMCOV_EXECUTABLE\} export \`cat "\$\{objects_cache\}" \` -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -format="text" -sources "\$\{CMAKE_SOURCE_DIR\}" > \$\{reportdir\}/coverage.json
-        # html
-        COMMAND \$\{LLVMCOV_EXECUTABLE\} show \`cat "\$\{objects_cache\}" \` -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -show-line-counts-or-regions -output-dir="\$\{reportdir\}" -format="html" -sources "\$\{CMAKE_SOURCE_DIR\}"
-        # terminal
-        #COMMAND \$\{LLVMCOV_EXECUTABLE\} report \`cat "\$\{objects_cache\}" \` -ignore-filename-regex='.*_interface\\..*' -ignore-filename-regex='.*_thin_wrapper\\..*' -instr-profile="\$\{merged_profiles\}" -sources "\$\{CMAKE_SOURCE_DIR\}"
-        DEPENDS llvm-cov-merge
-        BYPRODUCTS "\$\{reportdir\}/coverage.json" "\$\{reportdir\}/coverage.html"
-        COMMENT "Generating code coverage reports"
-        WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
-      )
-    endif()
+    # target to generate reports — uses @objects_cache response file so the
+    # command is identical on every platform (no shell glob or powershell needed)
+    add_custom_target(
+      coverage
+      # json export for machine consumption — \`llvm-cov export\` writes to stdout
+      # and has no -o, so a helper captures its output via execute_process
+      COMMAND \$\{CMAKE_COMMAND\}
+        "-DLLVMCOV=\$\{LLVMCOV_EXECUTABLE\}"
+        "-DOBJECTS=@\$\{objects_cache\}"
+        "-DPROFILE=\$\{merged_profiles\}"
+        "-DIGNORE_INTERFACE=.*_interface\\\\..*"
+        "-DIGNORE_WRAPPER=.*_thin_wrapper\\\\..*"
+        "-DOUTPUT=\$\{reportdir\}/coverage.json"
+        -P "\$\{CMAKE_SOURCE_DIR\}/cmake/coverage_helper_export_json.cmake"
+      # html report
+      COMMAND \$\{LLVMCOV_EXECUTABLE\} show "@\$\{objects_cache\}"
+        "-instr-profile=\$\{merged_profiles\}"
+        -ignore-filename-regex=.*_interface\\\\..*
+        -ignore-filename-regex=.*_thin_wrapper\\\\..*
+        -show-line-counts-or-regions
+        "-output-dir=\$\{reportdir\}"
+        -format=html
+        -sources "\$\{CMAKE_SOURCE_DIR\}"
+      # terminal summary (uncomment for a quick per-file coverage table on stdout)
+      #COMMAND \$\{LLVMCOV_EXECUTABLE\} report "@\$\{objects_cache\}"
+      #  "-instr-profile=\$\{merged_profiles\}"
+      #  -ignore-filename-regex=.*_interface\\\\..*
+      #  -ignore-filename-regex=.*_thin_wrapper\\\\..*
+      #  -sources "\$\{CMAKE_SOURCE_DIR\}"
+      DEPENDS llvm-cov-merge
+      BYPRODUCTS "\$\{reportdir\}/coverage.json"
+      COMMENT "Generating code coverage reports"
+      WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
+      VERBATIM
+    )
 
   endif()
 
 else()
-  add_custom_target(coverage COMMAND true COMMENT "Code coverage measurement disabled - nothing to do")
+  add_custom_target(coverage COMMAND \$\{CMAKE_COMMAND\} -E true COMMENT "Code coverage measurement disabled - nothing to do")
 endif()
 
 # add compiler flags to targets for code coverage
@@ -197,9 +184,15 @@ function(measure_coverage target)
       add_custom_command(
         TARGET \$\{target\}
         PRE_BUILD
-        COMMAND find "\$\{CMAKE_CURRENT_BINARY_DIR\}" -type f -name '*.gcda' -exec rm \{\} +
+        COMMAND \$\{CMAKE_COMMAND\}
+          -DMODE=wipe-gcda
+          "-DSEARCH_DIR=\$\{CMAKE_CURRENT_BINARY_DIR\}"
+          -P "\$\{CMAKE_SOURCE_DIR\}/cmake/coverage_helper_wipe_gcda.cmake"
         COMMENT "wiping stale coverage data files"
       )
+
+      get_target_property(_dir \$\{target\} BINARY_DIR)
+      set_property(GLOBAL APPEND PROPERTY ${1:`(ide-common-get-project-machine-name)`}_COVERAGE_SEARCH_DIRS "\$\{_dir\}")
 
     elseif("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "Clang" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "Clang")
 
@@ -207,18 +200,10 @@ function(measure_coverage target)
 
       target_link_options(\$\{target\} PUBLIC \$<\$<CONFIG:Debug>:-fprofile-instr-generate -fcoverage-mapping>)
 
-      set(datadir "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_COVERAGE_OUTPUT_DIR\}/profiles")
-      set(objects_cache "\$\{datadir\}/objects.txt")
-
-      if(target_type STREQUAL "SHARED_LIBRARY")
-        add_custom_target(
-          llvm-cov-prepare-\$\{target\}
-          COMMAND \$\{CMAKE_COMMAND\} -E echo "-object=\$<TARGET_FILE:\$\{target\}>" >> "\$\{objects_cache\}"
-          DEPENDS \$\{target\}
-        )
-        add_dependencies(llvm-cov-objects llvm-cov-prepare-\$\{target\})
-
-      endif() # shared library
+      get_target_property(_type \$\{target\} TYPE)
+      if(_type STREQUAL "SHARED_LIBRARY")
+        set_property(GLOBAL APPEND PROPERTY ${1:`(ide-common-get-project-machine-name)`}_COVERAGE_OBJECTS "-object=\$<TARGET_FILE:\$\{target\}>")
+      endif()
 
     endif() # CMAKE_COMPILER_ID
 
@@ -236,6 +221,7 @@ function(report_coverage test)
         "coverage_\$\{test\}"
         COMMAND "\$<TARGET_FILE:\$\{test\}>"
         WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
+        DEPENDS \$\{test\}
       )
       add_dependencies(coverage "coverage_\$\{test\}")
 
@@ -243,20 +229,97 @@ function(report_coverage test)
 
       set(datadir "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_COVERAGE_OUTPUT_DIR\}/profiles")
       set(profile "\$\{datadir\}/\$\{test\}.profraw")
-      set(objects_cache "\$\{datadir\}/objects.txt")
 
       add_custom_target(
         "coverage_\$\{test\}"
         COMMAND \$\{CMAKE_COMMAND\} -E env LLVM_PROFILE_FILE="\$\{profile\}" "\$<TARGET_FILE:\$\{test\}>"
-        COMMAND \$\{CMAKE_COMMAND\} -E echo "-object=\$<TARGET_FILE:\$\{test\}>" >> "\$\{objects_cache\}"
         BYPRODUCTS "\$\{profile\}"
         WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
-        JOB_POOL llvm-cov-sync
-        DEPENDS llvm-cov-objects \$\{test\}
+        DEPENDS \$\{test\}
       )
       add_dependencies(llvm-cov-merge "coverage_\$\{test\}")
 
+      set_property(GLOBAL APPEND PROPERTY ${1:`(ide-common-get-project-machine-name)`}_COVERAGE_OBJECTS "-object=\$<TARGET_FILE:\$\{test\}>")
+      set_property(GLOBAL APPEND PROPERTY ${1:`(ide-common-get-project-machine-name)`}_COVERAGE_PROFILES "\$\{datadir\}/\$\{test\}.profraw")
+
     endif()
+
+  endif()
+endfunction()
+
+
+# write generate-time list files and wire up the gcov coverage target;
+# must be called from the root CMakeLists.txt after all add_subdirectory() calls
+function(finalize_coverage)
+  if(NOT \$\{COVERAGE_AVAILABLE\})
+    return()
+  endif()
+
+  set(reportdir "\$\{PROJECT_BINARY_DIR\}/\$\{CMAKE_COVERAGE_OUTPUT_DIR\}")
+  set(datadir "\$\{reportdir\}/profiles")
+
+  if("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "Clang" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "Clang")
+
+    get_property(_objects GLOBAL PROPERTY ${1:`(ide-common-get-project-machine-name)`}_COVERAGE_OBJECTS)
+    if(NOT _objects)
+      message(WARNING "coverage: no objects registered — did you call report_coverage()?")
+      return()
+    endif()
+    string(JOIN "\\n" _objects_content \$\{_objects\})
+    # One file per config — the \$<CONFIG> in the output path matches the \$<CONFIG>
+    # in objects_cache/profiles_cache used by the custom targets above.
+    file(GENERATE
+      OUTPUT "\$\{datadir\}/objects-\$<CONFIG>.txt"
+      CONTENT "\$\{_objects_content\}\\n"
+    )
+
+    get_property(_profiles GLOBAL PROPERTY ${1:`(ide-common-get-project-machine-name)`}_COVERAGE_PROFILES)
+    if(NOT _profiles)
+      message(WARNING "coverage: no profiles registered — did you call report_coverage()?")
+      return()
+    endif()
+    string(JOIN "\\n" _profiles_content \$\{_profiles\})
+    file(GENERATE
+      OUTPUT "\$\{reportdir\}/profiles-\$<CONFIG>.txt"
+      CONTENT "\$\{_profiles_content\}\\n"
+    )
+
+  elseif("\$\{CMAKE_C_COMPILER_ID\}" MATCHES "GNU" OR "\$\{CMAKE_CXX_COMPILER_ID\}" MATCHES "GNU")
+
+    get_property(_search_dirs GLOBAL PROPERTY ${1:`(ide-common-get-project-machine-name)`}_COVERAGE_SEARCH_DIRS)
+    if(NOT _search_dirs)
+      message(WARNING "coverage: no objects registered — did you call report_coverage()?")
+      return()
+    endif()
+
+    set(_gcovr_args
+      -r "\$\{CMAKE_SOURCE_DIR\}"
+      --exclude ".*_thin_wrapper\\\\..*"
+      --exclude ".*_interface\\\\..*"
+      --exclude-unreachable-branches
+      --exclude-throw-branches
+    )
+    foreach(_dir IN LISTS _search_dirs)
+      list(APPEND _gcovr_args --search-path "\$\{_dir\}")
+    endforeach()
+    list(APPEND _gcovr_args
+      --html-details "\$\{reportdir\}/index.html"
+      --sonarqube "\$\{reportdir\}/sonarqube.xml"
+      # terminal summary (uncomment for a quick per-file coverage table on stdout)
+      #--txt
+    )
+
+    # The coverage target was created as a dependency aggregator; add the
+    # actual gcovr invocation now that all search paths are known.
+    add_custom_target(
+      _coverage_gcovr
+      COMMAND "\$\{GCOVR_EXECUTABLE\}" \$\{_gcovr_args\}
+      BYPRODUCTS "\$\{reportdir\}/index.html" "\$\{reportdir\}/sonarqube.xml"
+      COMMENT "Running gcovr"
+      WORKING_DIRECTORY "\$\{CMAKE_BINARY_DIR\}"
+      VERBATIM
+    )
+    add_dependencies(coverage _coverage_gcovr)
 
   endif()
 endfunction()

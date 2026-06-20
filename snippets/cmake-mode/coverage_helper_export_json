@@ -1,0 +1,25 @@
+# -*- mode: snippet -*-
+# name: coverage_helper_export_json
+# group: script
+# --
+# coverage_helper_export_json.cmake
+# Usage:
+#   cmake -DLLVMCOV=<path> -DOBJECTS=@<file> -DPROFILE=<profdata>
+#         -DIGNORE_INTERFACE=<regex> -DIGNORE_WRAPPER=<regex>
+#         -DOUTPUT=<json> -P coverage_helper_export_json.cmake
+
+# The llvm-cov export subcommand always writes JSON to stdout.
+# This captures the output and saves it to a file.
+
+execute_process(
+  COMMAND "\$\{LLVMCOV\}" export "\$\{OBJECTS\}"
+    "-instr-profile=\$\{PROFILE\}"
+    "-ignore-filename-regex=\$\{IGNORE_INTERFACE\}"
+    "-ignore-filename-regex=\$\{IGNORE_WRAPPER\}"
+    -format=text
+  OUTPUT_FILE "\$\{OUTPUT\}"
+  RESULT_VARIABLE _result
+)
+if(NOT _result EQUAL 0)
+  message(FATAL_ERROR "llvm-cov export failed (exit \$\{_result\})")
+endif()
