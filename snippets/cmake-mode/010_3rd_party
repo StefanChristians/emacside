@@ -1,0 +1,111 @@
+# -*- mode: snippet -*-
+# name: 3rd_party
+# group: module
+# --
+include_guard(GLOBAL)
+
+# register 3rd party library licenses and attributions and emit 3rd party
+# license file on installation
+
+# record named properties and license text of dependencies
+#
+# register_3rdparty(fc_name
+#   DISPLAY      <display_name>
+#   URL          <project_url>
+#   LICENSE_NAME <license_name>
+#   LICENSE_URL  <license_url>
+#   [LICENSE_FILE <relative_path>])
+#
+# fc_name is the FetchContent name
+# \$\{fc_name\}_SOURCE_DIR must be populated before calling this function
+# (i.e. after FetchContent_MakeAvailable).
+function(register_3rdparty fc_name)
+    cmake_parse_arguments(ARG "" "DISPLAY;URL;LICENSE_NAME;LICENSE_URL;LICENSE_FILE" "" \$\{ARGN\})
+
+    string(TOLOWER  "\$\{fc_name\}" _fc_lower)
+    string(TOUPPER  "\$\{fc_name\}" _fc_upper)
+    set(_src "\$\{\$\{_fc_lower\}_SOURCE_DIR\}")
+    if(NOT _src)
+        set(_src "\$CACHE\{\$\{_fc_upper\}_SOURCE_DIR\}")
+    endif()
+    if(NOT _src)
+        set(_src "\$\{\$\{_fc_upper\}_SOURCE_DIR\}")
+    endif()
+
+    if(ARG_LICENSE_FILE)
+        set(_lic_path "\$\{_src\}/\$\{ARG_LICENSE_FILE\}")
+    else()
+        file(GLOB _candidates
+            "\$\{_src\}/LICENSE"
+            "\$\{_src\}/LICENSE.*"
+            "\$\{_src\}/LICENCE"
+            "\$\{_src\}/LICENCE.*"
+            "\$\{_src\}/COPYING"
+            "\$\{_src\}/COPYING.*"
+            "\$\{_src\}/COPYRIGHT"
+            "\$\{_src\}/COPYRIGHT.*"
+            "\$\{_src\}/NOTICE"
+            "\$\{_src\}/NOTICE.*"
+        )
+        if(_candidates)
+            list(GET _candidates 0 _lic_path)
+        else()
+            set(_lic_path "")
+        endif()
+    endif()
+
+    if(NOT _lic_path OR NOT EXISTS "\$\{_lic_path\}")
+        message(WARNING "3rdparty: no license file found for \$\{fc_name\}")
+        set(_lic_path "")
+    endif()
+
+    set_property(GLOBAL APPEND PROPERTY ${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_KEYS          "\$\{fc_name\}")
+    set_property(GLOBAL PROPERTY "${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_DISPLAY_\$\{fc_name\}"  "\$\{ARG_DISPLAY\}")
+    set_property(GLOBAL PROPERTY "${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_URL_\$\{fc_name\}"      "\$\{ARG_URL\}")
+    set_property(GLOBAL PROPERTY "${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_LIC_NAME_\$\{fc_name\}" "\$\{ARG_LICENSE_NAME\}")
+    set_property(GLOBAL PROPERTY "${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_LIC_URL_\$\{fc_name\}"  "\$\{ARG_LICENSE_URL\}")
+
+    if(_lic_path)
+        file(READ "\$\{_lic_path\}" _lic_text)
+        set_property(GLOBAL PROPERTY "${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_TEXT_\$\{fc_name\}" "\$\{_lic_text\}")
+    endif()
+endfunction()
+
+
+# write \$\{out_dir\}/THIRD-PARTY-LICENSES.
+function(emit_3rdparty_licenses out_dir)
+    get_property(_keys GLOBAL PROPERTY ${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_KEYS)
+
+    file(MAKE_DIRECTORY "\$\{out_dir\}")
+    set(_file "\$\{out_dir\}/THIRD-PARTY-LICENSES")
+
+    set(_content
+"${2:`(ide-common-get-project-human-name)`} links the following libraries statically.\\n\\
+Their license notices are reproduced here to satisfy attribution requirements.\\n\\
+Each library remains the property of its respective copyright holders.\\n\\
+\\n\\
+")
+
+    foreach(_fc IN LISTS _keys)
+        get_property(_display  GLOBAL PROPERTY "${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_DISPLAY_\$\{_fc\}")
+        get_property(_url      GLOBAL PROPERTY "${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_URL_\$\{_fc\}")
+        get_property(_lic_name GLOBAL PROPERTY "${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_LIC_NAME_\$\{_fc\}")
+        get_property(_lic_url  GLOBAL PROPERTY "${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_LIC_URL_\$\{_fc\}")
+
+        string(APPEND _content "========== \$\{_display\} (\$\{_lic_name\}) ==========\\n")
+        string(APPEND _content "Project:  \$\{_url\}\\n")
+        string(APPEND _content "License:  \$\{_lic_url\}\\n\\n")
+
+        get_property(_text GLOBAL PROPERTY "${1:`(ide-common-get-project-machine-name)`}_3RDPARTY_TEXT_\$\{_fc\}")
+        if(_text)
+            string(APPEND _content "\$\{_text\}")
+        else()
+            message(WARNING "3rdparty: license text missing for \$\{_fc\}; recording URL fallback")
+            string(APPEND _content "License text not found. See: \$\{_lic_url\}\\n")
+        endif()
+
+        string(APPEND _content "\\n\\n")
+    endforeach()
+
+    file(WRITE "\$\{_file\}" "\$\{_content\}")
+endfunction()$0
