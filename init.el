@@ -1,8 +1,8 @@
-;;; init.el --- Emacs initialization -*- lexical-binding: t; -*-
+;; init.el --- Emacs initialization -*- lexical-binding: t; -*-
 
 ;; Version: 0.0.1
 
-;; Copyright (C) 2022, 2023, 2024, 2025 Stefan Christians
+;; Copyright (C) 2022, 2023, 2024, 2025, 2026 Stefan Christians
 ;; SPDX-License-Identifier: MIT
 
 ;;; Commentary:

@@ -1,8 +1,13 @@
 # -*- mode: snippet -*-
 # name: spdx
 # key: spdx
+# type: command
 # --
-// Copyright (C) `(format-time-string "%Y")` `user-full-name`
-// SPDX-License-Identifier: `(ide-common-dominating-spdx-id)`
-
-$0
+(progn
+  (spdx-insert-spdx-copyright
+   (ide-common-dominating-spdx-id)
+   (format "(C) %s %s"
+           (format-time-string "%Y")
+           user-full-name)
+   t)
+  (insert "\n\n"))
